@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const orderRoutes = require('./routes/orderRoutes');
+const productSellerRoutes = require('./routes/productSellerRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +12,7 @@ app.use(express.json()); // 讓 Express 能夠解析前端傳來的 JSON
 
 // 註冊訂單 API 路由路徑
 app.use('/api/orders', orderRoutes);
+app.use('/api', productSellerRoutes);
 
 // 啟動伺服器
 const PORT = process.env.PORT || 3000;
