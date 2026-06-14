@@ -163,10 +163,10 @@ export default function HomePage() {
                   <div style={s.pimg}>
                     <i className={`ti ${CATEGORY_ICON[p.category] || "ti-package"}`} style={{ fontSize:40, color:"#ccc" }} aria-hidden="true" />
                   </div>
-                  <div style={s.pname}>{p.name ?? p.product_name}</div>
+                  <div style={s.pname}>{p.product_name ?? p.name ?? p.product_id}</div>
                   <div style={s.pcat}>{(p.category ?? "").toUpperCase()}</div>
                   <div style={s.pfoot}>
-                    <div style={s.pprice}>NT${Number(p.price).toLocaleString()}</div>
+                    <div style={s.pprice}>NT${Number(p.product_price).toLocaleString()}</div>
                     <div style={s.prating}><span style={{ color:"#c8a96e" }}>★</span>{p.rating ?? "—"}</div>
                   </div>
                   <button

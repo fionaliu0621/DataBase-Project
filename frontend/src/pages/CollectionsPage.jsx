@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 const COLLECTIONS = [
@@ -22,9 +23,13 @@ export default function CollectionsPage() {
       <div style={{ padding:"3rem 2.5rem" }}>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:1, background:"#e8e8e8", border:"0.5px solid #e8e8e8", borderRadius:16, overflow:"hidden" }}>
           {COLLECTIONS.map(col => (
-            <div key={col.id} style={{ background:"#fff", padding:"2rem", cursor:"pointer", position:"relative", overflow:"hidden" }}
+            <Link
+              key={col.id}
+              to={`/collections/${col.id}`}
+              style={{ textDecoration:"none", display:"block", background:"#fff", padding:"2rem", cursor:"pointer", position:"relative", overflow:"hidden" }}
               onMouseEnter={e => e.currentTarget.style.background="#fafafa"}
-              onMouseLeave={e => e.currentTarget.style.background="#fff"}>
+              onMouseLeave={e => e.currentTarget.style.background="#fff"}
+            >
               <div style={{ width:44, height:44, borderRadius:10, background:"#f5f5f5", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:"1.25rem" }}>
                 <i className={`ti ${col.icon}`} style={{ fontSize:20, color:"#888" }} aria-hidden="true" />
               </div>
@@ -34,7 +39,7 @@ export default function CollectionsPage() {
               <div style={{ position:"absolute", bottom:"1.5rem", right:"1.5rem" }}>
                 <i className="ti ti-arrow-right" style={{ fontSize:16, color:"#ccc" }} aria-hidden="true" />
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

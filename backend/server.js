@@ -15,7 +15,16 @@ app.use('/api/orders', orderRoutes);
 const { getProducts, getProductById } = require('./controllers/orderController');
 app.get('/products', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM Products');
+        const { category } = req.query;
+        let query = 'SELECT * FROM Products';
+        let params = [];
+        
+        if (category) {
+            query += ' WHERE product_category_name = ?';
+            params.push(category.toLowerCase());
+        }
+        
+        const [rows] = await db.query(query, params);
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -24,8 +33,89 @@ app.get('/products', async (req, res) => {
 
 app.get('/products/:id', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM Products WHERE product_id = ?', [req.params.id]);
-        if (rows.length === 0) return res.status(404).json({ error: '找不到商品' });
+        const [products] = await db.query(
+            'SELECT * FROM Products WHERE product_id = ?', 
+            [req.params.id]
+        );
+        if (products.length === 0) return res.status(404).json({ error: '找不到商品' });
+        
+        const p = products[0];
+
+        // 從 Order_Items 找賣家
+        const [items] = await db.query(
+            'SELECT seller_id FROM Order_Items WHERE product_id = ? LIMIT 1',
+            [req.params.id]
+        );
+        
+        let seller = {};
+        if (items.length > 0) {
+            const [sellers] = await db.query(
+                'SELECT * FROM Sellers WHERE seller_id = ?',
+                [items[0].seller_id]
+            );
+            if (sellers.length > 0) {
+                seller = {
+                    id: sellers[0].seller_id,
+                    name: sellers[0].seller_id,
+                    location: sellers[0].seller_city,
+                    joined: '2024',
+                    stats: [['5.0', 'Rating'], ['100%', 'Response']]
+                };
+            }
+        }
+
+        // 從 Order_Reviews 找評價
+        const [reviews] = await db.query(`
+            SELECT r.review_score, r.review_comment_title, r.review_comment_message, r.review_creation_date
+            FROM Order_Reviews r
+            JOIN Orders o ON r.order_id = o.order_id
+            JOIN Order_Items oi ON o.order_id = oi.order_id
+            WHERE oi.product_id = ?
+            LIMIT 5
+        `, [req.params.id]);
+
+        res.json({
+            id: p.product_id,
+            name: p.product_name,
+            category: p.product_category_name,
+            price: p.product_price,
+            stock: p.product_available,
+            specs: [
+                ['Weight', `${p.product_weight_g}g`],
+                ['Length', `${p.product_length_cm}cm`],
+                ['Height', `${p.product_height_cm}cm`],
+                ['Width', `${p.product_width_cm}cm`],
+                ['Photos', p.product_photos_qty],
+            ],
+            seller,
+            reviews: reviews.map(r => ({
+                name: 'Customer',
+                initials: 'CU',
+                stars: r.review_score,
+                date: r.review_creation_date,
+                text: r.review_comment_message
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+app.get('/sellers', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM Sellers');
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/sellers/:id', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT * FROM Sellers WHERE seller_id = ?', 
+            [req.params.id]
+        );
+        if (rows.length === 0) return res.status(404).json({ error: '找不到賣家' });
         res.json(rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
