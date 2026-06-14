@@ -1,0 +1,9 @@
+﻿order_id,order_item_id,product_id,seller_id,shipping_limit_date,price,freight_value,order_item_quantity
+ord_1,1,prod_3,sell_2,2026-06-04 02:00:00,305.83,25.18,2
+ord_2,1,prod_5,sell_1,2026-06-05 09:00:00,355.24,6.15,1
+ord_2,2,prod_3,sell_1,2026-06-05 09:00:00,429.11,26.66,2
+ord_3,1,prod_3,sell_2,2026-06-06 08:00:00,112.66,11.67,1
+ord_4,1,prod_3,sell_3,2026-06-07 04:00:00,347.2,10.49,2
+ord_4,2,prod_1,sell_1,2026-06-07 04:00:00,412.68,25.13,2
+ord_5,1,prod_2,sell_3,2026-06-08 02:00:00,254.62,27.12,2
+ord_5,2,prod_2,sell_2,2026-06-08 02:00:00,78.42,23.62,2

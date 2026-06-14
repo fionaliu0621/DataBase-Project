@@ -1,0 +1,269 @@
+import csv
+from datetime import datetime, timedelta
+import random
+
+# 設定隨機種子以確保重複執行結果相同（可自由移除）
+random.seed(42)
+
+# --- 1. 模擬基礎資料準備 ---
+zip_codes = ["100", "400", "800"]
+cities = ["Taipei", "Taichung", "Kaohsiung"]
+states = ["TP", "TC", "KH"]
+lats = [25.0330, 24.1477, 22.6273]
+lngs = [121.5654, 120.6736, 120.3014]
+
+categories = ["home_appliances", "electronics", "books"]
+categories_en = ["Home Appliances", "Electronics", "Books"]
+
+# --- 2. 生成各資料表數據 ---
+
+# 1. Geolocation
+geolocation_data = []
+for i in range(len(zip_codes)):
+    geolocation_data.append(
+        [zip_codes[i], lats[i], lngs[i], cities[i], states[i]]
+    )
+
+
+# 3. Customers
+customer_data = []
+customer_ids = [f"cust_{i}" for i in range(1, 6)]  # 5位買家
+for i, cust_id in enumerate(customer_ids):
+    idx = i % len(zip_codes)
+    customer_data.append(
+        [cust_id, f"uniq_cust_{i+1}", zip_codes[idx], cities[idx], states[idx]]
+    )
+
+# 4. Sellers
+seller_data = []
+seller_ids = [f"sell_{i}" for i in range(1, 4)]  # 3位賣家
+for i, sell_id in enumerate(seller_ids):
+    idx = (i + 1) % len(zip_codes)
+    seller_data.append([sell_id, zip_codes[idx], cities[idx], states[idx]])
+
+# 5. Products
+product_data = []
+product_ids = [f"prod_{i}" for i in range(1, 6)]  # 5個商品
+for i, prod_id in enumerate(product_ids):
+    cat = categories[i % len(categories)]
+    product_data.append(
+        [
+            prod_id,
+            cat,
+            random.randint(10, 30),
+            random.randint(50, 200),
+            random.randint(1, 5),
+            random.randint(200, 5000),
+            random.randint(15, 60),
+            random.randint(10, 40),
+            random.randint(10, 40),
+            random.choice([0, 1]),
+        ]
+    )
+
+# 6. Orders & 7. Order_Items & 8. Order_Payments & 9. Order_Reviews
+# 為了邏輯關聯，這四張表的時序與 ID 一起連動生成
+order_data = []
+order_items_data = []
+payment_data = []
+review_data = []
+
+order_ids = [f"ord_{i}" for i in range(1, 6)]  # 5筆訂單
+statuses = [
+    "delivered",
+    "shipped",
+    "delivered",
+    "processing",
+    "canceled",
+]  # 符合 CHECK 約束
+payment_types = ["credit_card", "voucher", "debit_card", "transfer"]
+
+base_time = datetime(2026, 6, 1)
+
+for i, ord_id in enumerate(order_ids):
+    # 時間軸模擬
+    purchase_time = base_time + timedelta(
+        days=i, hours=random.randint(1, 10)
+    )
+    approved_time = purchase_time + timedelta(minutes=random.randint(10, 60))
+    carrier_time = (
+        approved_time + timedelta(days=1)
+        if statuses[i] in ["shipped", "delivered"]
+        else ""
+    )
+    customer_time = (
+        carrier_time + timedelta(days=2) if statuses[i] == "delivered" else ""
+    )
+    est_delivery_time = purchase_time + timedelta(days=7)
+    ship_limit_time = purchase_time + timedelta(days=3)
+
+    # 6. 寫入訂單主表
+    cust_id = random.choice(customer_ids)
+    order_data.append(
+        [
+            ord_id,
+            cust_id,
+            statuses[i],
+            purchase_time.strftime("%Y-%m-%d %H:%M:%S"),
+            approved_time.strftime("%Y-%m-%d %H:%M:%S"),
+            (
+                carrier_time.strftime("%Y-%m-%d %H:%M:%S")
+                if carrier_time
+                else None
+            ),
+            (
+                customer_time.strftime("%Y-%m-%d %H:%M:%S")
+                if customer_time
+                else None
+            ),
+            est_delivery_time.strftime("%Y-%m-%d %H:%M:%S"),
+            ship_limit_time.strftime("%Y-%m-%d %H:%M:%S"),
+        ]
+    )
+
+    # 7. 寫入訂單項目表 (每筆訂單隨機 1~2 個項目)
+    item_count = random.randint(1, 2)
+    total_order_value = 0
+    for item_idx in range(1, item_count + 1):
+        prod_id = random.choice(product_ids)
+        sell_id = random.choice(seller_ids)
+        price = round(random.uniform(10.0, 500.0), 2)
+        freight = round(random.uniform(5.0, 30.0), 2)
+        qty = random.randint(1, 2)
+
+        total_order_value += (price * qty) + freight
+        order_items_data.append(
+            [
+                ord_id,
+                item_idx,
+                prod_id,
+                sell_id,
+                ship_limit_time.strftime("%Y-%m-%d %H:%M:%S"),
+                price,
+                freight,
+                qty,
+            ]
+        )
+
+    # 8. 寫入付款紀錄表 (簡單處理：一筆訂單付一次款)
+    p_type = random.choice(payment_types)
+    installments = random.choice([1, 3, 6]) if p_type == "credit_card" else 1
+    payment_data.append(
+        [ord_id, 1, p_type, installments, round(total_order_value, 2)]
+    )
+
+    # 9. 寫入評價紀錄表 (只針對已完成或有狀態的訂單給評價)
+    if statuses[i] in ["delivered", "canceled"]:
+        review_time = (
+            customer_time + timedelta(days=1)
+            if customer_time
+            else purchase_time + timedelta(days=4)
+        )
+        review_data.append(
+            [
+                f"rev_{i+1}",
+                ord_id,
+                random.randint(1, 5),
+                f"Title {i+1}",
+                f"Comment message for order {ord_id}.",
+                review_time.strftime("%Y-%m-%d %H:%M:%S"),
+                (review_time + timedelta(hours=5)).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+            ]
+        )
+
+# --- 3. 定義欄位名稱並寫入 CSV 檔案 ---
+
+files_and_headers = {
+    "Geolocation.csv": [
+        "geolocation_zip_code_prefix",
+        "geolocation_lat",
+        "geolocation_lng",
+        "geolocation_city",
+        "geolocation_state",
+    ],
+    "Customers.csv": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state",
+    ],
+    "Sellers.csv": [
+        "seller_id",
+        "seller_zip_code_prefix",
+        "seller_city",
+        "seller_state",
+    ],
+    "Products.csv": [
+        "product_id",
+        "product_category_name",
+        "product_name_length",
+        "product_description_length",
+        "product_photos_qty",
+        "product_weight_g",
+        "product_length_cm",
+        "product_height_cm",
+        "product_width_cm",
+        "product_available",
+    ],
+    "Orders.csv": [
+        "order_id",
+        "customer_id",
+        "order_status",
+        "order_purchase_timestamp",
+        "order_approved_at",
+        "order_delivered_carrier_date",
+        "order_delivered_customer_date",
+        "order_estimated_delivery_date",
+        "shipping_limit_date",
+    ],
+    "Order_Items.csv": [
+        "order_id",
+        "order_item_id",
+        "product_id",
+        "seller_id",
+        "shipping_limit_date",
+        "price",
+        "freight_value",
+        "order_item_quantity",
+    ],
+    "Order_Payments.csv": [
+        "order_id",
+        "payment_sequential",
+        "payment_type",
+        "payment_installments",
+        "payment_value",
+    ],
+    "Order_Reviews.csv": [
+        "review_id",
+        "order_id",
+        "review_score",
+        "review_comment_title",
+        "review_comment_message",
+        "review_creation_date",
+        "review_answer_timestamp",
+    ],
+}
+
+data_mapping = {
+    "Geolocation.csv": geolocation_data,
+    "Customers.csv": customer_data,
+    "Sellers.csv": seller_data,
+    "Products.csv": product_data,
+    "Orders.csv": order_data,
+    "Order_Items.csv": order_items_data,
+    "Order_Payments.csv": payment_data,
+    "Order_Reviews.csv": review_data,
+}
+
+# 執行寫入
+for filename, headers in files_and_headers.items():
+    with open(
+        filename, mode="w", newline="", encoding="utf-8-sig"
+    ) as file:  # 使用 utf-8-sig 確保 Excel 開啟不亂碼
+        writer = csv.writer(file)
+        writer.writerow(headers)
+        writer.writerows(data_mapping[filename])
+    print(f"已成功產出：{filename}，共 {len(data_mapping[filename])} 筆資料。")
