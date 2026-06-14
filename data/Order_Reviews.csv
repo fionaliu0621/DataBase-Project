@@ -1,0 +1,4 @@
+﻿review_id,order_id,review_score,review_comment_title,review_comment_message,review_creation_date,review_answer_timestamp
+rev_1,ord_1,1,Title 1,Comment message for order ord_1.,2026-06-05 02:15:00,2026-06-05 07:15:00
+rev_3,ord_3,5,Title 3,Comment message for order ord_3.,2026-06-07 08:50:00,2026-06-07 13:50:00
+rev_5,ord_5,5,Title 5,Comment message for order ord_5.,2026-06-09 02:00:00,2026-06-09 07:00:00

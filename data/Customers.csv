@@ -1,0 +1,6 @@
+﻿customer_id,customer_unique_id,customer_zip_code_prefix,customer_city,customer_state
+cust_1,uniq_cust_1,100,Taipei,TP
+cust_2,uniq_cust_2,400,Taichung,TC
+cust_3,uniq_cust_3,800,Kaohsiung,KH
+cust_4,uniq_cust_4,100,Taipei,TP
+cust_5,uniq_cust_5,400,Taichung,TC
