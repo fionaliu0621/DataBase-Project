@@ -1,6 +1,6 @@
 ﻿order_id,payment_sequential,payment_type,payment_installments,payment_value
-ord_1,1,credit_card,3,636.84
-ord_2,1,debit_card,1,1246.27
-ord_3,1,voucher,1,124.33
-ord_4,1,debit_card,1,1555.38
+ord_1,1,debit_card,1,99.22
+ord_2,1,voucher,1,133.9
+ord_3,1,voucher,1,732.51
+ord_4,1,transfer,1,250.26
 ord_5,1,transfer,1,716.82

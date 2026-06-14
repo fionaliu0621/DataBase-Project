@@ -1,6 +1,6 @@
-﻿product_id,product_category_name,product_name_length,product_description_length,product_photos_qty,product_weight_g,product_length_cm,product_height_cm,product_width_cm,product_available
-prod_1,home_appliances,30,78,1,2453,30,17,14,0
-prod_2,electronics,27,72,5,3656,17,10,12,0
-prod_3,books,17,179,5,417,50,16,32,1
-prod_4,home_appliances,17,164,5,2478,15,34,35,0
-prod_5,electronics,23,137,3,1473,28,40,34,1
+﻿product_id,product_name,product_category_name,product_name_length,product_description_length,product_photos_qty,product_weight_g,product_length_cm,product_height_cm,product_width_cm,product_available,product_price
+prod_1,prod_1,home_appliances,30,78,1,2453,30,17,14,0,2871
+prod_2,prod_2,electronics,27,72,5,3656,17,10,12,0,1052
+prod_3,prod_3,books,26,56,5,1828,60,30,32,1,1002
+prod_4,prod_4,home_appliances,24,200,3,253,25,32,23,1,1238
+prod_5,prod_5,electronics,14,105,3,1037,20,22,13,1,3571

@@ -44,11 +44,14 @@ for i, sell_id in enumerate(seller_ids):
 # 5. Products
 product_data = []
 product_ids = [f"prod_{i}" for i in range(1, 6)]  # 5個商品
+product_names = [f"prod_{i}" for i in range(1, 6)]
 for i, prod_id in enumerate(product_ids):
     cat = categories[i % len(categories)]
+    prod_name = product_names[i % len(product_names)]
     product_data.append(
         [
             prod_id,
+            prod_name,
             cat,
             random.randint(10, 30),
             random.randint(50, 200),
@@ -58,6 +61,7 @@ for i, prod_id in enumerate(product_ids):
             random.randint(10, 40),
             random.randint(10, 40),
             random.choice([0, 1]),
+            random.randint(100, 4000),
         ]
     )
 
@@ -198,6 +202,7 @@ files_and_headers = {
     ],
     "Products.csv": [
         "product_id",
+        "product_name",
         "product_category_name",
         "product_name_length",
         "product_description_length",
@@ -207,6 +212,7 @@ files_and_headers = {
         "product_height_cm",
         "product_width_cm",
         "product_available",
+        "product_price",
     ],
     "Orders.csv": [
         "order_id",
