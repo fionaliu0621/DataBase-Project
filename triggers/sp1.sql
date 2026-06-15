@@ -1,3 +1,5 @@
+USE railway;
+
 DELIMITER $$
 
 CREATE PROCEDURE AddOrder(
@@ -24,7 +26,7 @@ BEGIN
     
     INSERT INTO Order_Items (
         order_id, order_item_id, product_id, seller_id,
-        shipping_limit_date, price, freight_value, quantity
+        shipping_limit_date, price, freight_value, order_item_quantity
     ) VALUES (
         new_order_id, 1, p_product_id, p_seller_id,
         p_shipping_limit_date, p_price, p_freight_value, p_quantity
