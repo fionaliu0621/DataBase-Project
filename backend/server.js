@@ -113,6 +113,7 @@ app.get('/sellers', async (req, res) => {
     }
 });
 
+// 🛠️ 賣家基本資料路由（專職返回基本資料，不與營收撞車）
 app.get('/sellers/:id', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM Sellers WHERE seller_id = ?', [req.params.id]);
@@ -123,7 +124,7 @@ app.get('/sellers/:id', async (req, res) => {
     }
 });
 
-// 賣家營收 (GetSellerRevenue SP) - 🛠️ 終極解構與欄位對齊修正版
+// 🛠️ 賣家營收路由 (GetSellerRevenue SP) - 獨立路徑並整合 localhost 解構邏輯
 app.get('/revenue/:id', async (req, res) => {
     try {
         const sellerId = req.params.id;
@@ -131,36 +132,27 @@ app.get('/revenue/:id', async (req, res) => {
 
         const [results] = await db.query('CALL GetSellerRevenue(?)', [sellerId]);
         
-        let dbRow = null;
+        // 🎯 使用你在 localhost 成功撈出資料的精準雙層陣列解構法
+        const data = results[0][0];
 
-        // 🎯 修正核心漏洞：精準撥開 Stored Procedure 回傳的雙層陣列外殼
-        if (Array.isArray(results) && results.length > 0) {
-            if (Array.isArray(results[0]) && results[0].length > 0) {
-                dbRow = results[0][0]; // 這才是真正的資料物件 {}
-            } else if (!Array.isArray(results[0]) && typeof results[0] === 'object' && results[0] !== null) {
-                dbRow = results[0];
-            }
-        }
-
-        // 如果資料庫真的完全沒資料
-        if (!dbRow) {
-            console.log(`[Railway] 提示：賣家 ${sellerId} 資料庫查無營收列`);
+        if (!data) {
+            console.log(`[Railway] 提示：賣家 ${sellerId} 在資料庫中查無營收列`);
             return res.json({ success: true, data: null });
         }
 
-        console.log("[Railway] 資料庫吐出的原始欄位物件為:", JSON.stringify(dbRow));
+        console.log("[Railway] 資料庫吐出的原始欄位物件為:", JSON.stringify(data));
 
-        const values = Object.values(dbRow);
+        const values = Object.values(data);
 
-        // 🛠️ 強行對齊前端需要的 4 個英文名字，同時相容大/小寫、有無底線
+        // 🛠️ 將欄位翻譯對齊前端需要的 4 個英文名字，相容大/小寫或有無底線
         const alignedData = {
-            total_orders: dbRow.total_orders ?? dbRow.total_orders_qty ?? dbRow.order_count ?? dbRow.orders ?? dbRow.TotalOrders ?? values[0] ?? 0,
-            total_price: dbRow.total_price ?? dbRow.total_sales ?? dbRow.sales_amount ?? dbRow.price_sum ?? dbRow.TotalPrice ?? values[1] ?? 0,
-            total_freight: dbRow.total_freight ?? dbRow.freight_sum ?? dbRow.freight ?? dbRow.TotalFreight ?? values[2] ?? 0,
-            total_revenue: dbRow.total_revenue ?? dbRow.total_amount ?? dbRow.revenue ?? dbRow.TotalRevenue ?? values[3] ?? 0
+            total_orders: data.total_orders ?? data.total_orders_qty ?? data.order_count ?? data.orders ?? data.TotalOrders ?? values[0] ?? 0,
+            total_price: data.total_price ?? data.total_sales ?? data.sales_amount ?? data.price_sum ?? data.TotalPrice ?? values[1] ?? 0,
+            total_freight: data.total_freight ?? data.freight_sum ?? data.freight ?? data.TotalFreight ?? values[2] ?? 0,
+            total_revenue: data.total_revenue ?? data.total_amount ?? data.revenue ?? data.TotalRevenue ?? values[3] ?? 0
         };
 
-        console.log("[Railway] 轉換完成發送給前端的資料:", JSON.stringify(alignedData));
+        console.log("[Railway] 轉換完成並發送給前端的資料結構:", JSON.stringify(alignedData));
 
         return res.json({ 
             success: true, 
