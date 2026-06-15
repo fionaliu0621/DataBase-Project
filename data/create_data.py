@@ -32,7 +32,7 @@ NUM_ORDERS = SCALE_FACTOR * 10
 unique_zip_ints = random.sample(range(100, 1000), NUM_GEOLOCATION)
 zip_codes = [f"{z:03d}" for z in unique_zip_ints]
 geolocation_data = [[
-    zip, float(fake.latitude()), float(fake.longitude()), fake.city()[:20]
+    zip, float(fake.latitude()), float(fake.longitude()), fake.city()[:49]
 ] for zip in zip_codes]
 
 # geolocation_data = []
@@ -45,7 +45,7 @@ geolocation_data = [[
 # 3. Customers
 customer_ids = [f"cust_{i:06d}" for i in range(1, NUM_CUSTOMERS + 1)]
 customer_data = [[
-    cid, str(uuid.uuid4())[:20], random.choice(zip_codes), fake.city()[:20]
+    cid, str(uuid.uuid4())[:20], random.choice(zip_codes), fake.city()[:49]
 ] for cid in customer_ids]
 
 # customer_data = []
@@ -59,7 +59,7 @@ customer_data = [[
 # 4. Sellers
 seller_ids = [f"sell_{i:04d}" for i in range(1, NUM_SELLERS + 1)]
 seller_data = [[
-    sid, random.choice(zip_codes), fake.city()[:20]
+    sid, random.choice(zip_codes), fake.city()[:49]
 ] for sid in seller_ids]
 
 # seller_data = []
@@ -72,7 +72,7 @@ seller_data = [[
 # categories = ["home_appliances", "electronics", "books", "fashion", "toys", "automotive"]
 product_ids = [f"prod_{i:05d}" for i in range(1, NUM_PRODUCTS + 1)]
 product_data = [[
-    pid, fake.ecommerce_name()[:20], fake.ecommerce_category()[:20], random.randint(10, 40), random.randint(50, 300),
+    pid, random.choice(seller_ids), fake.ecommerce_name()[:49], fake.ecommerce_category()[:49], random.randint(10, 40), random.randint(50, 300),
     random.randint(1, 8), random.randint(100, 8000), random.randint(10, 80),
     random.randint(5, 50), random.randint(5, 50), random.choice([0, 1]), random.randint(10, 10000)
 ] for pid in product_ids]
@@ -299,6 +299,7 @@ files_and_headers = {
     ],
     "Products.csv": [
         "product_id",
+        "product_seller_id",
         "product_name",
         "product_category_name",
         "product_name_length",

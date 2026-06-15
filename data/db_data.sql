@@ -62,6 +62,7 @@ DROP TABLE IF EXISTS `Products`;
 SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE IF NOT EXISTS `Products` (
     `product_id` VARCHAR(50) PRIMARY KEY,
+    `product_seller_id` VARCHAR(50),
     `product_name` VARCHAR(50),
     `product_category_name` VARCHAR(50),
     `product_name_length` INT,

@@ -26,6 +26,7 @@ CREATE TABLE Sellers (
 -- 5. 建立商品資料表 (已修正欄位命名一致性)
 CREATE TABLE Products (
     product_id VARCHAR(50) PRIMARY KEY,
+    product_seller_id VARCHAR(50),
     product_name VARCHAR(50),
     product_category_name VARCHAR(50),
     product_name_length INT,
@@ -37,7 +38,7 @@ CREATE TABLE Products (
     product_width_cm INT,
     product_available INT,
     product_price INT,
-    FOREIGN KEY (product_category_name) REFERENCES Product_Category_Name_Translation(product_category_name)
+    FOREIGN KEY (product_seller_id) REFERENCES Sellers(seller_id)
 );
 
 -- 6. 建立訂單主表 (已補齊 shipping_limit_date)
