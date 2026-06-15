@@ -1,3 +1,5 @@
+USE railway;
+
 DELIMITER $$
 
 CREATE TRIGGER trg_payment_check
@@ -11,7 +13,7 @@ BEGIN
     FROM Order_Payments
     WHERE order_id = NEW.order_id;
     
-    SELECT SUM(price * quantity + freight_value) INTO total_due
+    SELECT SUM(price * order_item_quantity + freight_value) INTO total_due
     FROM Order_Items
     WHERE order_id = NEW.order_id;
     
