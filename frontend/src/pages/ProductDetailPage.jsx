@@ -58,7 +58,7 @@ export default function ProductDetailPage() {
       }
 
       const reviewRes = await fetch(
-        `https://database-project-production-aefc.up.railway.app/products/${id}/order`,
+        `https://database-project-production-aefc.up.railway.app/reviews`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
