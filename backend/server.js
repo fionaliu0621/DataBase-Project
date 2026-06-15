@@ -16,16 +16,23 @@ const { getProducts, getProductById } = require('./controllers/orderController')
 app.get('/products', async (req, res) => {
     try {
         const { category } = req.query;
-        let query = 'SELECT * FROM Products';
+        let query = 'SELECT *, product_seller_id AS seller_id FROM Products';
         let params = [];
         
         if (category) {
             query += ' WHERE product_category_name = ?';
-            params.push(category.toLowerCase());
+            params.push(category);
         }
         
         const [rows] = await db.query(query, params);
-        res.json(rows);
+        
+        // 加上圖片路徑
+        const products = rows.map(p => ({
+            ...p,
+            image: `/images/${p.product_id}.jpg`
+        }));
+        
+        res.json(products);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -102,8 +109,31 @@ app.get('/products/:id', async (req, res) => {
 });
 app.get('/sellers', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM Sellers');
-        res.json(rows);
+        const [rows] = await db.query(`
+            SELECT 
+                s.seller_id,
+                s.seller_city,
+                COUNT(DISTINCT oi.order_id) AS sold,
+                AVG(r.review_score) AS rating
+            FROM Sellers s
+            LEFT JOIN Order_Items oi ON s.seller_id = oi.seller_id
+            LEFT JOIN Orders o ON oi.order_id = o.order_id
+            LEFT JOIN Order_Reviews r ON o.order_id = r.order_id
+            GROUP BY s.seller_id, s.seller_city
+        `);
+
+        const sellers = rows.map(s => ({
+            id: s.seller_id,
+            name: s.seller_id,
+            location: s.seller_city,
+            since: '2024',
+            rating: s.rating ? Number(s.rating).toFixed(1) : 'N/A',
+            sold: s.sold,
+            positive: s.sold > 0 ? '100%' : 'N/A',
+            cats: []
+        }));
+
+        res.json(sellers);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -139,6 +169,16 @@ app.post('/orders', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+app.get('/orders', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT * FROM Orders ORDER BY order_purchase_timestamp DESC LIMIT 20'
+        );
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 app.get('/payments', async (req, res) => {
     try {
         const { order_id } = req.query;
@@ -151,6 +191,49 @@ app.get('/payments', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+app.get('/customers/:id/orders', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT o.order_id, o.order_status, o.order_purchase_timestamp,
+                   oi.product_id, oi.price, oi.order_item_quantity,
+                   p.product_name, p.product_category_name
+            FROM Orders o
+            LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
+            LEFT JOIN Products p ON oi.product_id = p.product_id
+            WHERE o.customer_id = ?
+            ORDER BY o.order_purchase_timestamp DESC
+        `, [req.params.id]);
+
+        // 把多筆 row 整理成一筆訂單含多個 items
+        const ordersMap = {};
+        for (const row of rows) {
+            if (!ordersMap[row.order_id]) {
+                ordersMap[row.order_id] = {
+                    order_id: row.order_id,
+                    status: row.order_status,
+                    date: row.order_purchase_timestamp,
+                    items: [],
+                    total: 0
+                };
+            }
+            if (row.product_id) {
+                const itemTotal = Number(row.price) * Number(row.order_item_quantity);
+                ordersMap[row.order_id].items.push({
+                    product_id: row.product_id,
+                    product_name: row.product_name,
+                    price: row.price,
+                    qty: row.order_item_quantity
+                });
+                ordersMap[row.order_id].total += itemTotal;
+            }
+        }
+
+        res.json(Object.values(ordersMap));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // 啟動伺服器
 const PORT = process.env.PORT || 3000;

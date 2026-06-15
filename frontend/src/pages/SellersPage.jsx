@@ -3,9 +3,6 @@ import { getSellers } from "../api/sellers";
 import { useApi } from "../hooks/useApi";
 
 export default function SellersPage() {
-  // GET /sellers
-  // 預期回傳每個賣家：
-  // { id, initials, name, location, rating, sold, positive, since, cats: [...] }
   const { data, loading, error } = useApi(() => getSellers(), []);
   const sellers = Array.isArray(data) ? data : data?.sellers ?? [];
 
@@ -19,47 +16,33 @@ export default function SellersPage() {
       </div>
 
       <div style={{ padding:"3rem 2.5rem" }}>
-        {loading && (
-          <div style={{ textAlign:"center", color:"#bbb", fontSize:13, padding:"2rem" }}>Loading sellers…</div>
-        )}
-        {error && (
-          <div style={{ textAlign:"center", color:"#e24b4a", fontSize:13, padding:"2rem" }}>
-            Failed to load sellers: {error.message}
-          </div>
-        )}
-        {!loading && !error && sellers.length === 0 && (
-          <div style={{ textAlign:"center", color:"#bbb", fontSize:13, padding:"2rem" }}>No sellers found.</div>
-        )}
+        {loading && <div style={{ textAlign:"center", color:"#bbb", fontSize:13, padding:"2rem" }}>Loading sellers…</div>}
+        {error && <div style={{ textAlign:"center", color:"#e24b4a", fontSize:13, padding:"2rem" }}>Failed to load sellers: {error.message}</div>}
+        {!loading && !error && sellers.length === 0 && <div style={{ textAlign:"center", color:"#bbb", fontSize:13, padding:"2rem" }}>No sellers found.</div>}
 
         {!loading && !error && sellers.length > 0 && (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:12 }}>
             {sellers.map(s => {
               const id = s.id ?? s.seller_id;
-              const initials = s.initials ?? (s.name ?? "?").slice(0,2).toUpperCase();
-              const cats = s.cats ?? s.categories ?? [];
+              const initials = id?.slice(0,2).toUpperCase() ?? "??";
               return (
                 <div key={id} style={{ background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", padding:"1.5rem", cursor:"pointer" }}
                   onMouseEnter={e => e.currentTarget.style.borderColor="#bbb"}
                   onMouseLeave={e => e.currentTarget.style.borderColor="#e8e8e8"}>
                   <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:"1.25rem" }}>
-                    <div style={{ width:44, height:44, borderRadius:"50%", background:"#f0f0f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:500, color:"#555", flexShrink:0 }}>{initials}</div>
+                    <div style={{ width:44, height:44, borderRadius:"50%", background:"#f0f0f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:500, color:"#555", flexShrink:0 }}>{initials}</div>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:14, fontWeight:500, color:"#111", marginBottom:2 }}>{s.name}</div>
+                      <div style={{ fontSize:14, fontWeight:500, color:"#111", marginBottom:2 }}>{s.name ?? id}</div>
                       <div style={{ fontSize:11, color:"#bbb" }}>{s.location} · Since {s.since}</div>
                     </div>
                     <div style={{ fontSize:13, color:"#c8a96e", fontWeight:500 }}>★ {s.rating}</div>
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:"1rem" }}>
-                    {[["SOLD",s.sold],["POSITIVE",s.positive],["RATING",s.rating+"★"]].map(([l,v]) => (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                    {[["SOLD", s.sold], ["POSITIVE", s.positive], ["RATING", s.rating + "★"]].map(([l, v]) => (
                       <div key={l} style={{ background:"#fafafa", borderRadius:8, padding:"8px 0", textAlign:"center" }}>
                         <div style={{ fontSize:13, fontWeight:500, color:"#111" }}>{v}</div>
                         <div style={{ fontSize:9, color:"#bbb", letterSpacing:"0.5px", marginTop:2 }}>{l}</div>
                       </div>
-                    ))}
-                  </div>
-                  <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                    {cats.map(c => (
-                      <span key={c} style={{ fontSize:10, letterSpacing:"0.5px", padding:"3px 10px", borderRadius:99, border:"0.5px solid #e8e8e8", color:"#888" }}>{c.toUpperCase()}</span>
                     ))}
                   </div>
                 </div>

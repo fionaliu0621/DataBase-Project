@@ -4,29 +4,30 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    historyApiFallback: true,
     proxy: {
       '/products': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app:3000',
         changeOrigin: true,
       },
       '/orders': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app:3000',
         changeOrigin: true,
       },
       '/sellers': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app:3000',
         changeOrigin: true,
       },
       '/payments': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app:3000',
         changeOrigin: true,
       },
       '/reviews': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app:3000',
         changeOrigin: true,
       },
       '/customers': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app:3000',
         changeOrigin: true,
       },
     }
