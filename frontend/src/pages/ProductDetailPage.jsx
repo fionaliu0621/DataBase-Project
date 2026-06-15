@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import { getProductById } from "../api/products";
 import { useApi } from "../hooks/useApi";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 const THUMBS = ["ti-headphones","ti-package","ti-plug","ti-file-description"];
 
@@ -19,19 +20,70 @@ export default function ProductDetailPage() {
   const [thumb, setThumb] = useState(0);
   const [added, setAdded] = useState(false);
   const { addToCart, cartCount } = useCart();
+  const { customerId } = useAuth();
 
-  // GET /products/:id
-  // 預期回傳形狀（與負責商品 API 的組員確認後可調整 mapping）：
-  // {
-  //   id, name, category, price, original_price, rating, review_count, stock,
-  //   specs: [[key, value], ...],
-  //   seller: { id, initials, name, location, joined, stats: [[val, label], ...] },
-  //   reviews: [{ initials, name, stars, date, text }, ...]
-  // }
+  // Review form state
+  const [reviewScore, setReviewScore] = useState(5);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewMessage, setReviewMessage] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(null);
+  const [reviewError, setReviewError] = useState(null);
+
   const { data: product, loading, error } = useApi(
     () => getProductById(id),
     [id]
   );
+
+  const handleSubmitReview = async () => {
+    if (!reviewMessage.trim()) {
+      setReviewError("請輸入評論內容");
+      return;
+    }
+    setReviewSubmitting(true);
+    setReviewError(null);
+    setReviewSuccess(null);
+    try {
+      // 先找這個商品的一筆 order_id
+      const res = await fetch(
+        `https://delightful-fascination-production-82e0.up.railway.app/products/${id}/order`
+      );
+      const json = await res.json();
+      const order_id = json.order_id;
+
+      if (!order_id) {
+        setReviewError("找不到對應訂單，無法送出評論");
+        setReviewSubmitting(false);
+        return;
+      }
+
+      const reviewRes = await fetch(
+        `https://delightful-fascination-production-82e0.up.railway.app/reviews`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order_id,
+            review_score: reviewScore,
+            review_comment_title: reviewTitle,
+            review_comment_message: reviewMessage,
+          }),
+        }
+      );
+      const reviewJson = await reviewRes.json();
+      if (reviewJson.success) {
+        setReviewSuccess("評論送出成功！");
+        setReviewTitle("");
+        setReviewMessage("");
+        setReviewScore(5);
+      } else {
+        setReviewError(reviewJson.error ?? "送出失敗");
+      }
+    } catch (err) {
+      setReviewError(err.message);
+    }
+    setReviewSubmitting(false);
+  };
 
   if (loading) {
     return (
@@ -115,10 +167,11 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
+          {/* Customer Reviews */}
           <div style={card}>
             <div style={{ fontSize:13, fontWeight:500, marginBottom:"1.25rem" }}>Customer reviews</div>
             {reviews.length === 0 && (
-              <div style={{ fontSize:12, color:"#bbb" }}>No reviews yet.</div>
+              <div style={{ fontSize:12, color:"#bbb", marginBottom:"1.25rem" }}>No reviews yet.</div>
             )}
             {reviews.map((r,i) => (
               <div key={i} style={{ padding:"14px 0", borderBottom: i<reviews.length-1 ? "0.5px solid #f5f5f5" : "none" }}>
@@ -133,6 +186,55 @@ export default function ProductDetailPage() {
                 <div style={{ fontSize:12, color:"#888", lineHeight:1.7 }}>{r.text ?? r.body}</div>
               </div>
             ))}
+
+            {/* Write a review form */}
+            <div style={{ marginTop:"1.5rem", paddingTop:"1.5rem", borderTop:"0.5px solid #f0f0f0" }}>
+              <div style={{ fontSize:12, fontWeight:500, marginBottom:12 }}>Write a review</div>
+
+              {/* Star rating */}
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:6 }}>RATING</div>
+                <div style={{ display:"flex", gap:4 }}>
+                  {[1,2,3,4,5].map(n => (
+                    <span key={n} onClick={() => setReviewScore(n)}
+                      style={{ fontSize:22, cursor:"pointer", color: n <= reviewScore ? "#c8a96e" : "#e0e0e0" }}>★</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:6 }}>TITLE</div>
+                <input
+                  value={reviewTitle}
+                  onChange={e => setReviewTitle(e.target.value)}
+                  placeholder="Summary of your review"
+                  style={{ width:"100%", height:36, padding:"0 12px", border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:13, outline:"none", fontFamily:"'Inter',sans-serif", boxSizing:"border-box", background:"#fafafa" }}
+                />
+              </div>
+
+              {/* Message */}
+              <div style={{ marginBottom:12 }}>
+                <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:6 }}>REVIEW</div>
+                <textarea
+                  value={reviewMessage}
+                  onChange={e => setReviewMessage(e.target.value)}
+                  placeholder="Share your experience with this product"
+                  rows={3}
+                  style={{ width:"100%", padding:"10px 12px", border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:13, outline:"none", fontFamily:"'Inter',sans-serif", boxSizing:"border-box", background:"#fafafa", resize:"none" }}
+                />
+              </div>
+
+              {reviewError && <div style={{ fontSize:12, color:"#e24b4a", marginBottom:8 }}>{reviewError}</div>}
+              {reviewSuccess && <div style={{ fontSize:12, color:"#3b6d11", marginBottom:8 }}>{reviewSuccess}</div>}
+
+              <button
+                onClick={handleSubmitReview}
+                disabled={reviewSubmitting}
+                style={{ padding:"8px 20px", background: reviewSubmitting ? "#999" : "#111", color:"#fff", border:"none", borderRadius:99, fontSize:12, cursor: reviewSubmitting ? "default" : "pointer", fontFamily:"'Inter',sans-serif" }}>
+                {reviewSubmitting ? "Submitting…" : "Submit review"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -166,7 +268,7 @@ export default function ProductDetailPage() {
                 }}
               >
                 {stock === 0 ? "Out of stock" : added ? "Added ✓" : "Add to bag"}
-</button>
+            </button>
             <button style={btnOutline}>Buy now</button>
             <div style={{ marginTop:"1.25rem", paddingTop:"1.25rem", borderTop:"0.5px solid #f0f0f0", display:"flex", flexDirection:"column", gap:8 }}>
               {[["ti-truck","Est. delivery May 30 – Jun 1"],["ti-shield-check","Buyer protection included"],["ti-refresh","7-day returns"]].map(([icon,text]) => (
