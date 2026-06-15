@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-//+
+// Auth
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
@@ -133,8 +133,6 @@ app.get('/revenue/:id', async (req, res) => {
     }
 });
 
-// Orders
-// Orders - 新增訂單（已修正 Railway 雲端外鍵與格式化相容問題）
 // Orders - 新增訂單（完全動態查詢賣家版，不寫死）
 app.post('/orders', async (req, res) => {
     try {
@@ -150,11 +148,10 @@ app.post('/orders', async (req, res) => {
             quantity 
         } = req.body;
 
-        // 💡 1. 真正的動態修復：如果前端沒給 seller_id，後端自己去資料庫精準捕獲
+        // 💡 真正的動態修復：如果前端沒給 seller_id，後端自己去資料庫精準捕獲
         if (!seller_id) {
             console.log(`🔍 正在動態為商品 ID: ${product_id} 尋找對應的賣家...`);
             
-            // 優先從 Order_Items 歷史紀錄中撈取該商品的賣家
             const [itemRows] = await db.query(
                 'SELECT seller_id FROM Order_Items WHERE product_id = ? LIMIT 1', 
                 [product_id]
@@ -163,8 +160,7 @@ app.post('/orders', async (req, res) => {
             if (itemRows.length > 0 && itemRows[0].seller_id) {
                 seller_id = itemRows[0].seller_id;
             } else {
-                // ⚠️ 防呆機制：如果該商品是全新上架、歷史紀錄完全沒人賣過
-                // 則動態去 Sellers 表抓取目前資料庫「最新註冊的第一個賣家」，確保絕對有值可用且不寫死
+                // 防呆機制：如果該商品在歷史紀錄完全沒人賣過，動態去 Sellers 表抓取目前資料庫的第一個賣家
                 const [backupSeller] = await db.query('SELECT seller_id FROM Sellers LIMIT 1');
                 if (backupSeller.length > 0) {
                     seller_id = backupSeller[0].seller_id;
@@ -179,18 +175,18 @@ app.post('/orders', async (req, res) => {
         const cleanedProductId = product_id?.trim();
         const cleanedSellerId = seller_id?.trim();
 
-        // 💡 2. 動態呼叫你的 Stored Procedure
+        // 動態呼叫 Stored Procedure
         const [results] = await db.query(
             'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 cleanedCustomerId, 
                 cleanedProductId, 
-                cleanedSellerId, // 這邊百分之百是資料庫動態算出來的合法 ID
+                cleanedSellerId, 
                 price || 0, 
                 freight_value || 0, 
                 shipping_limit_date || new Date(), 
                 payment_type || 'credit_card', 
-                payment_value || (price * (quantity || 1)), // 動態計算付款總額
+                payment_value || (price * (quantity || 1)), 
                 quantity || 1
             ]
         );
@@ -206,6 +202,7 @@ app.post('/orders', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 app.get('/orders', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM Orders ORDER BY order_purchase_timestamp DESC LIMIT 20');
@@ -215,14 +212,13 @@ app.get('/orders', async (req, res) => {
     }
 });
 
-// 更新訂單狀態 (UpdateOrderStatus SP)
-// 更新訂單狀態 / 取消訂單 (使用 UpdateOrderStatus SP)
-app.patch('/orders/:id/status', async (req, res) => {
+// ✨【已修正】更新訂單狀態 / 取消訂單（全面對齊前端 POST 請求，阻斷 405 錯誤）
+app.post('/orders/:id/status', async (req, res) => {
     try {
         const { new_status } = req.body;
         const orderId = req.params.id;
 
-        console.log(`[Railway] 收到取消請求 - 訂單 ID: ${orderId}, 狀態: ${new_status}`);
+        console.log(`[Railway] 收到取消請求(POST) - 訂單 ID: ${orderId}, 狀態: ${new_status}`);
 
         // 呼叫預存程序
         const [results] = await db.query(
@@ -230,9 +226,8 @@ app.patch('/orders/:id/status', async (req, res) => {
             [orderId, new_status]
         );
 
-        // 💡 超安全解構：絕對不使用 results[0][0].result 這種容易炸開的寫法
+        // 安全解構：防止任何因為多層陣列引發的未捕獲崩潰
         let finalResult = 'success';
-        
         if (Array.isArray(results) && results.length > 0 && Array.isArray(results[0]) && results[0].length > 0) {
             finalResult = results[0][0].result || results[0][0].status || 'success';
         }
@@ -246,14 +241,13 @@ app.patch('/orders/:id/status', async (req, res) => {
 
     } catch (error) {
         console.error("❌ Railway 後端更新失敗:", error.message);
-        
-        // 就算後端炸了，也必須回傳 JSON，這樣前端才看得到具體的錯誤訊息
         return res.status(500).json({ 
             success: false, 
             error: error.message 
         });
     }
 });
+
 app.get('/payments', async (req, res) => {
     try {
         const { order_id } = req.query;
