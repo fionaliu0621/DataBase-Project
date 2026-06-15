@@ -125,6 +125,7 @@ app.get('/sellers/:id', async (req, res) => {
 
 // 賣家營收 (GetSellerRevenue SP)
 // ✨ 賣家營收 (GetSellerRevenue SP) - 安全相容與日誌檢查版
+// ✨ 賣家營收 (GetSellerRevenue SP) - 欄位名稱強行映射對齊版
 app.get('/revenue/:id', async (req, res) => {
     try {
         const sellerId = req.params.id;
@@ -132,35 +133,47 @@ app.get('/revenue/:id', async (req, res) => {
 
         const [results] = await db.query('CALL GetSellerRevenue(?)', [sellerId]);
         
-        // 🔍 在 Railway Log 中印出原始結構，方便抓鬼
-        console.log("[Railway] SP 原始回傳結果:", JSON.stringify(results));
+        let dbRow = null;
 
-        let revenueData = null;
-
-        // 💡 自動解構：相容各種陣列層級的寫法
+        // 解構出第一筆資料
         if (Array.isArray(results) && results.length > 0) {
             if (Array.isArray(results[0]) && results[0].length > 0) {
-                // 如果是雙層陣列 [[{...}]]，取最內層的第一筆資料
-                revenueData = results[0][0];
+                dbRow = results[0][0];
             } else if (typeof results[0] === 'object' && results[0] !== null) {
-                // 如果單層陣列 [{...}]
-                revenueData = results[0];
+                dbRow = results[0];
             }
         }
 
-        // 如果撈出來的欄位都是 null 或是根本沒撈到，就給個明確的 false 訊號
-        if (!revenueData || (revenueData.revenue === null && revenueData.total_sales === null)) {
-            return res.json({ 
-                success: true, 
-                data: null, 
-                message: "此賣家目前確實無已送達的訂單數據" 
-            });
+        // 🔍 如果資料庫真的空空如也
+        if (!dbRow) {
+            return res.json({ success: true, data: null });
         }
 
-        // 成功回傳對齊後的物件資料
+        // 💡 印出資料庫真正撈出來的欄位原名，方便你在日誌對照
+        console.log("[Railway] 資料庫吐出來的原始欄位是:", JSON.stringify(dbRow));
+
+        // =========================================================================
+        // 🛠️ 【核心修正】強行翻譯！不管資料庫叫什麼名字，通通包裝成前端要的四個英文名字
+        // =========================================================================
+        const alignedData = {
+            // 1. 總訂單數：嘗試抓取各種可能的名字，防堵大小寫或底線差異
+            total_orders: dbRow.total_orders ?? dbRow.total_orders_qty ?? dbRow.order_count ?? dbRow.orders ?? Object.values(dbRow)[0] ?? 0,
+            
+            // 2. 總商品金額
+            total_price: dbRow.total_price ?? dbRow.total_sales ?? dbRow.sales_amount ?? dbRow.price_sum ?? Object.values(dbRow)[1] ?? 0,
+            
+            // 3. 總運費
+            total_freight: dbRow.total_freight ?? dbRow.freight_sum ?? dbRow.freight ?? Object.values(dbRow)[2] ?? 0,
+            
+            // 4. 總營收（金額 + 運費）
+            total_revenue: dbRow.total_revenue ?? dbRow.total_amount ?? dbRow.revenue ?? Object.values(dbRow)[3] ?? 0
+        };
+
+        console.log("[Railway] 強行轉換後、準備送給前端的資料:", JSON.stringify(alignedData));
+
         return res.json({ 
             success: true, 
-            data: revenueData 
+            data: alignedData 
         });
 
     } catch (error) {
