@@ -46,7 +46,7 @@ export default function ProductDetailPage() {
     try {
       // 先找這個商品的一筆 order_id
       const res = await fetch(
-        `https://delightful-fascination-production-82e0.up.railway.app/products/${id}/order`
+        `https://database-project-production-aefc.up.railway.app/products/${id}/order`
       );
       const json = await res.json();
       const order_id = json.order_id;
@@ -58,7 +58,7 @@ export default function ProductDetailPage() {
       }
 
       const reviewRes = await fetch(
-        `https://delightful-fascination-production-82e0.up.railway.app/reviews`,
+        `https://database-project-production-aefc.up.railway.app/products/${id}/order`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
