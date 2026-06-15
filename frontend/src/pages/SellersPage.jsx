@@ -18,7 +18,9 @@ export default function SellersPage() {
     try {
       // 💡 ✨【核心修正 1】將網址精準對齊後端定義的短路徑
       const res = await fetch(
-        `https://database-project-production-aefc.up.railway.app/products/${id}/order`
+        const res = await fetch(
+          `https://database-project-production-aefc.up.railway.app/revenue/${id}`
+        );
       );
       
       if (!res.ok) throw new Error("伺服器回應錯誤");
