@@ -29,6 +29,17 @@ app.get('/products', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+app.get('/products/:id/order', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT order_id FROM Order_Items WHERE product_id = ? LIMIT 1',
+            [req.params.id]
+        );
+        res.json({ order_id: rows[0]?.order_id ?? null });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 app.get('/products/:id', async (req, res) => {
     try {
@@ -327,18 +338,7 @@ app.get('/customers/:id/orders', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-// 取得商品對應的 order_id
-app.get('/products/:id/order', async (req, res) => {
-    try {
-        const [rows] = await db.query(
-            'SELECT order_id FROM Order_Items WHERE product_id = ? LIMIT 1',
-            [req.params.id]
-        );
-        res.json({ order_id: rows[0]?.order_id ?? null });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+
 
 // 新增評論
 app.post('/reviews', async (req, res) => {
