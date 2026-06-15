@@ -472,8 +472,9 @@ export default function HomePage() {
             <div style={s.emptyState}>No products found.</div>
           )}
 
+          {/* 加入了 .slice(0, 48) 限制只顯示前 48 筆 */}
           {!loading &&
-            displayProducts.map((p) => {
+            displayProducts.slice(0, 48).map((p) => {
               const pid = p.id ?? p.product_id;
               return (
                 <Link
