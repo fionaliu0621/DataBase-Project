@@ -8,7 +8,6 @@ router.get('/', orderController.getAllOrders);
 // 2. 依據 ID 獲取單一訂單詳細資料
 router.get('/:id', orderController.getOrderById);
 
-module.exports = router;
 
 // 新增訂單
 router.post('/add', orderController.createOrder);
@@ -18,3 +17,4 @@ router.patch('/:id/status', orderController.updateStatus);
 
 // 查詢賣家營收
 router.get('/seller/:id/revenue', orderController.getSellerRevenue);
+module.exports = router;
