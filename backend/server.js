@@ -219,14 +219,10 @@ app.get('/orders', async (req, res) => {
 // 更新訂單狀態 / 取消訂單 (使用 UpdateOrderStatus SP)
 app.patch('/orders/:id/status', async (req, res) => {
     try {
-        const orderId = req.params.id;
         const { new_status } = req.body;
+        const orderId = req.params.id;
 
-        console.log(`正在嘗試更新訂單 ${orderId} 的狀態為: ${new_status}`);
-
-        if (!new_status) {
-            return res.status(400).json({ success: false, error: "缺少 new_status 參數" });
-        }
+        console.log(`[Railway] 收到取消請求 - 訂單 ID: ${orderId}, 狀態: ${new_status}`);
 
         // 呼叫預存程序
         const [results] = await db.query(
@@ -234,32 +230,30 @@ app.patch('/orders/:id/status', async (req, res) => {
             [orderId, new_status]
         );
 
-        // 💡 安全解構：確保不論 SP 有沒有 SELECT 東西回傳，都不會讓後端掛掉
-        let dbResult = 'success';
-        if (results && results[0] && results[0][0]) {
-            // 如果你的 SP 有回傳欄位（例如名為 result 或 status），動態抓取
-            dbResult = results[0][0].result || results[0][0].status || 'success';
+        // 💡 超安全解構：絕對不使用 results[0][0].result 這種容易炸開的寫法
+        let finalResult = 'success';
+        
+        if (Array.isArray(results) && results.length > 0 && Array.isArray(results[0]) && results[0].length > 0) {
+            finalResult = results[0][0].result || results[0][0].status || 'success';
         }
 
-        // 💡 100% 保證回傳合法的 JSON，絕不讓前端 Unexpected end of JSON
+        // 100% 回傳標準 JSON
         return res.json({ 
             success: true, 
-            message: `訂單狀態已成功更新為 ${new_status}`, 
-            result: dbResult 
+            result: finalResult,
+            message: "訂單狀態更新成功" 
         });
 
     } catch (error) {
-        console.error("❌ 更新訂單狀態失敗，詳細原因:", error);
+        console.error("❌ Railway 後端更新失敗:", error.message);
         
-        // 即使伺服器噴 500，也務必回傳完整的 JSON 結構
+        // 就算後端炸了，也必須回傳 JSON，這樣前端才看得到具體的錯誤訊息
         return res.status(500).json({ 
             success: false, 
-            error: error.message,
-            message: "伺服器內部錯誤，更新失敗"
+            error: error.message 
         });
     }
 });
-
 app.get('/payments', async (req, res) => {
     try {
         const { order_id } = req.query;
