@@ -59,7 +59,7 @@ export default function OrdersPage() {
       const res = await fetch(
         `https://database-project-production-aefc.up.railway.app/orders/${id}/status`,
         {
-          method: 'PATCH',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ new_status: 'canceled' })
         }
