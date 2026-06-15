@@ -7,27 +7,27 @@ export default defineConfig({
     historyApiFallback: true,
     proxy: {
       '/products': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app',
         changeOrigin: true,
       },
       '/orders': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app',
         changeOrigin: true,
       },
       '/sellers': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app',
         changeOrigin: true,
       },
       '/payments': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app',
         changeOrigin: true,
       },
       '/reviews': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app',
         changeOrigin: true,
       },
       '/customers': {
-        target: 'http://localhost:3000',
+        target: 'http://database-project-production-aefc.up.railway.app',
         changeOrigin: true,
       },
     }
