@@ -109,10 +109,7 @@ export default function HomePage() {
               onClick={() => document.getElementById("featured-products")?.scrollIntoView({ behavior: "smooth" })}
             >
               Shop now
-            </button>
-            <Link to="/collections" style={{ ...s.btnGhost, textDecoration:"none" }}>
-              View collections <i className="ti ti-arrow-right" style={{ fontSize:13 }} aria-hidden="true" />
-            </Link>
+            </button> 
           </div>
           <div style={s.heroStats}>
             {[["98k+","PRODUCTS"],["12k+","SELLERS"],["4.7","AVG RATING"]].map(([n,l]) => (
