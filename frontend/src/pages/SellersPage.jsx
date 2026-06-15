@@ -16,17 +16,28 @@ export default function SellersPage() {
     setRevenueLoading(true);
     setRevenue(null);
     try {
+      // 💡 ✨【核心修正 1】將網址精準對齊後端定義的短路徑
       const res = await fetch(
-        `https://delightful-fascination-production-82e0.up.railway.app/api/orders/seller/${id}/revenue`
+        `https://delightful-fascination-production-82e0.up.railway.app/revenue/${id}`
       );
+      
+      if (!res.ok) throw new Error("伺服器回應錯誤");
+      
       const json = await res.json();
-      setRevenue(json.data?.[0] ?? null);
+      console.log("前端收到的營收原始資料:", json);
+
+      // 💡 ✨【核心修正 2】對齊後端經安全解構後的物件格式（不要用 .?.[0] 拆陣列）
+      if (json.success && json.data) {
+        setRevenue(json.data);
+      } else {
+        setRevenue(null);
+      }
     } catch (err) {
+      console.error("前端請求營收失敗:", err);
       setRevenue(null);
     }
     setRevenueLoading(false);
   };
-
   return (
     <div style={{ fontFamily:"'Inter',sans-serif", background:"#fafafa", minHeight:"100vh" }}>
       <Navbar />
