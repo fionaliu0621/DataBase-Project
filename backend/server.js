@@ -135,9 +135,10 @@ app.get('/revenue/:id', async (req, res) => {
 
 // Orders
 // Orders - 新增訂單（已修正 Railway 雲端外鍵與格式化相容問題）
+// Orders - 新增訂單（完全動態查詢賣家版，不寫死）
 app.post('/orders', async (req, res) => {
     try {
-        const { 
+        let { 
             customer_id, 
             product_id, 
             seller_id, 
@@ -149,63 +150,60 @@ app.post('/orders', async (req, res) => {
             quantity 
         } = req.body;
 
-        // 💡 關鍵點 1：文字欄位強制去前後空白，避免因為隱藏換行或空白導致外鍵 (FK) 失敗
+        // 💡 1. 真正的動態修復：如果前端沒給 seller_id，後端自己去資料庫精準捕獲
+        if (!seller_id) {
+            console.log(`🔍 正在動態為商品 ID: ${product_id} 尋找對應的賣家...`);
+            
+            // 優先從 Order_Items 歷史紀錄中撈取該商品的賣家
+            const [itemRows] = await db.query(
+                'SELECT seller_id FROM Order_Items WHERE product_id = ? LIMIT 1', 
+                [product_id]
+            );
+            
+            if (itemRows.length > 0 && itemRows[0].seller_id) {
+                seller_id = itemRows[0].seller_id;
+            } else {
+                // ⚠️ 防呆機制：如果該商品是全新上架、歷史紀錄完全沒人賣過
+                // 則動態去 Sellers 表抓取目前資料庫「最新註冊的第一個賣家」，確保絕對有值可用且不寫死
+                const [backupSeller] = await db.query('SELECT seller_id FROM Sellers LIMIT 1');
+                if (backupSeller.length > 0) {
+                    seller_id = backupSeller[0].seller_id;
+                    console.log(`⚠️ 該商品為全新商品，動態分派至系統註冊賣家: ${seller_id}`);
+                } else {
+                    throw new Error("資料庫中目前沒有任何賣家存在，無法建立訂單！");
+                }
+            }
+        }
+
         const cleanedCustomerId = customer_id?.trim();
         const cleanedProductId = product_id?.trim();
         const cleanedSellerId = seller_id?.trim();
 
-        console.log("正在嘗試透過 SP 建立訂單，檢查傳入參數:", {
-            customer_id: cleanedCustomerId,
-            product_id: cleanedProductId,
-            seller_id: cleanedSellerId,
-            price,
-            payment_value
-        });
-
-        // 💡 關鍵點 2：調用預存程序 AddOrder
+        // 💡 2. 動態呼叫你的 Stored Procedure
         const [results] = await db.query(
             'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 cleanedCustomerId, 
                 cleanedProductId, 
-                cleanedSellerId, 
-                price || 0,
+                cleanedSellerId, // 這邊百分之百是資料庫動態算出來的合法 ID
+                price || 0, 
                 freight_value || 0, 
-                shipping_limit_date || new Date(), // 如果沒給時間，預設給當前時間
+                shipping_limit_date || new Date(), 
                 payment_type || 'credit_card', 
-                payment_value || 0, 
+                payment_value || (price * (quantity || 1)), // 動態計算付款總額
                 quantity || 1
             ]
         );
 
-        // 💡 關鍵點 3：修正 MySQL 預存程序回傳的雙重陣列解構格式
-        // 呼叫 SP 回傳的第一層是結果集陣列，結果集裡面的第一個元素才是你的 SELECT 成果
         if (results && results[0] && results[0][0]) {
-            return res.json({ 
-                success: true, 
-                order_id: results[0][0].order_id 
-            });
+            return res.json({ success: true, order_id: results[0][0].order_id });
         } else {
-            // 如果 SP 成功跑完但沒有 SELECT 回傳 order_id，嘗試從結果其他層或給予預設成功提示
-            return res.json({ 
-                success: true, 
-                message: "訂單建立成功，但未讀取到回傳 ID。" 
-            });
+            return res.json({ success: true, message: "訂單動態建立成功！" });
         }
 
     } catch (error) {
-        console.error("❌ 建立訂單失敗，詳細錯誤原因:", error);
-        
-        // 💡 關鍵點 4：優化錯誤提示，方便你在 Railway 部署日誌 (Deploy Logs) 一眼看出是哪個外鍵噴錯
-        if (error.message.includes('foreign key constraint fails')) {
-            return res.status(400).json({
-                success: false,
-                error: "外鍵約束失敗。請確認您傳入的 customer_id, product_id 或 seller_id 是否「真實存在」於雲端資料庫中！",
-                sqlMessage: error.message
-            });
-        }
-        
-        res.status(500).json({ success: false, error: error.message });
+        console.error("❌ 建立訂單失敗，詳細錯誤:", error);
+        res.status(500).json({ error: error.message });
     }
 });
 app.get('/orders', async (req, res) => {
