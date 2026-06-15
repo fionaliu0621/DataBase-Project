@@ -9,3 +9,12 @@ router.get('/', orderController.getAllOrders);
 router.get('/:id', orderController.getOrderById);
 
 module.exports = router;
+
+// 新增訂單
+router.post('/add', orderController.createOrder);
+
+// 更新訂單狀態
+router.patch('/:id/status', orderController.updateStatus);
+
+// 查詢賣家營收
+router.get('/seller/:id/revenue', orderController.getSellerRevenue);

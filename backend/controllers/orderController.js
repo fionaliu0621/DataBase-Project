@@ -42,3 +42,68 @@ exports.getOrderById = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+// [POST] /api/orders/add (呼叫 AddOrder SP)
+exports.createOrder = async (req, res) => {
+    try {
+        const { customer_id, product_id, seller_id, price,
+                freight_value, shipping_limit_date,
+                payment_type, payment_value, quantity } = req.body;
+
+        const [results] = await db.query(
+            'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [customer_id, product_id, seller_id, price,
+             freight_value, shipping_limit_date,
+             payment_type, payment_value, quantity]
+        );
+        res.json({ success: true, order_id: results[0][0].order_id });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// [PATCH] /api/orders/:id/status (呼叫 UpdateOrderStatus SP)
+exports.updateStatus = async (req, res) => {
+    try {
+        const { new_status } = req.body;
+        const [results] = await db.query(
+            'CALL UpdateOrderStatus(?, ?)',
+            [req.params.id, new_status]
+        );
+        res.json({ success: true, result: results[0][0].result });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// [GET] /api/sellers/:id/revenue (呼叫 GetSellerRevenue SP)
+exports.getSellerRevenue = async (req, res) => {
+    try {
+        const [results] = await db.query(
+            'CALL GetSellerRevenue(?)',
+            [req.params.id]
+        );
+        res.json({ success: true, data: results[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+// [GET] /products
+exports.getProducts = async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM Products');
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// [GET] /products/:id
+exports.getProductById = async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM Products WHERE product_id = ?', [req.params.id]);
+        if (rows.length === 0) return res.status(404).json({ success: false, message: '找不到商品' });
+        res.json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
