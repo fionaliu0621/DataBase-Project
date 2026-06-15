@@ -124,15 +124,50 @@ app.get('/sellers/:id', async (req, res) => {
 });
 
 // 賣家營收 (GetSellerRevenue SP)
+// ✨ 賣家營收 (GetSellerRevenue SP) - 安全相容與日誌檢查版
 app.get('/revenue/:id', async (req, res) => {
     try {
-        const [results] = await db.query('CALL GetSellerRevenue(?)', [req.params.id]);
-        res.json({ success: true, data: results[0] });
+        const sellerId = req.params.id;
+        console.log(`[Railway] 正在查詢賣家營收 - 賣家 ID: ${sellerId}`);
+
+        const [results] = await db.query('CALL GetSellerRevenue(?)', [sellerId]);
+        
+        // 🔍 在 Railway Log 中印出原始結構，方便抓鬼
+        console.log("[Railway] SP 原始回傳結果:", JSON.stringify(results));
+
+        let revenueData = null;
+
+        // 💡 自動解構：相容各種陣列層級的寫法
+        if (Array.isArray(results) && results.length > 0) {
+            if (Array.isArray(results[0]) && results[0].length > 0) {
+                // 如果是雙層陣列 [[{...}]]，取最內層的第一筆資料
+                revenueData = results[0][0];
+            } else if (typeof results[0] === 'object' && results[0] !== null) {
+                // 如果單層陣列 [{...}]
+                revenueData = results[0];
+            }
+        }
+
+        // 如果撈出來的欄位都是 null 或是根本沒撈到，就給個明確的 false 訊號
+        if (!revenueData || (revenueData.revenue === null && revenueData.total_sales === null)) {
+            return res.json({ 
+                success: true, 
+                data: null, 
+                message: "此賣家目前確實無已送達的訂單數據" 
+            });
+        }
+
+        // 成功回傳對齊後的物件資料
+        return res.json({ 
+            success: true, 
+            data: revenueData 
+        });
+
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error("❌ 查詢賣家營收失敗:", error.message);
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
-
 // Orders - 新增訂單（完全動態查詢賣家版，不寫死）
 app.post('/orders', async (req, res) => {
     try {
