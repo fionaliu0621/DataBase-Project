@@ -123,9 +123,7 @@ app.get('/sellers/:id', async (req, res) => {
     }
 });
 
-// 賣家營收 (GetSellerRevenue SP)
-// ✨ 賣家營收 (GetSellerRevenue SP) - 安全相容與日誌檢查版
-// ✨ 賣家營收 (GetSellerRevenue SP) - 欄位名稱強行映射對齊版
+// 賣家營收 (GetSellerRevenue SP) - 🛠️ 終極解構與欄位對齊修正版
 app.get('/revenue/:id', async (req, res) => {
     try {
         const sellerId = req.params.id;
@@ -135,41 +133,34 @@ app.get('/revenue/:id', async (req, res) => {
         
         let dbRow = null;
 
-        // 解構出第一筆資料
+        // 🎯 修正核心漏洞：精準撥開 Stored Procedure 回傳的雙層陣列外殼
         if (Array.isArray(results) && results.length > 0) {
             if (Array.isArray(results[0]) && results[0].length > 0) {
-                dbRow = results[0][0];
-            } else if (typeof results[0] === 'object' && results[0] !== null) {
+                dbRow = results[0][0]; // 這才是真正的資料物件 {}
+            } else if (!Array.isArray(results[0]) && typeof results[0] === 'object' && results[0] !== null) {
                 dbRow = results[0];
             }
         }
 
-        // 🔍 如果資料庫真的空空如也
+        // 如果資料庫真的完全沒資料
         if (!dbRow) {
+            console.log(`[Railway] 提示：賣家 ${sellerId} 資料庫查無營收列`);
             return res.json({ success: true, data: null });
         }
 
-        // 💡 印出資料庫真正撈出來的欄位原名，方便你在日誌對照
-        console.log("[Railway] 資料庫吐出來的原始欄位是:", JSON.stringify(dbRow));
+        console.log("[Railway] 資料庫吐出的原始欄位物件為:", JSON.stringify(dbRow));
 
-        // =========================================================================
-        // 🛠️ 【核心修正】強行翻譯！不管資料庫叫什麼名字，通通包裝成前端要的四個英文名字
-        // =========================================================================
+        const values = Object.values(dbRow);
+
+        // 🛠️ 強行對齊前端需要的 4 個英文名字，同時相容大/小寫、有無底線
         const alignedData = {
-            // 1. 總訂單數：嘗試抓取各種可能的名字，防堵大小寫或底線差異
-            total_orders: dbRow.total_orders ?? dbRow.total_orders_qty ?? dbRow.order_count ?? dbRow.orders ?? Object.values(dbRow)[0] ?? 0,
-            
-            // 2. 總商品金額
-            total_price: dbRow.total_price ?? dbRow.total_sales ?? dbRow.sales_amount ?? dbRow.price_sum ?? Object.values(dbRow)[1] ?? 0,
-            
-            // 3. 總運費
-            total_freight: dbRow.total_freight ?? dbRow.freight_sum ?? dbRow.freight ?? Object.values(dbRow)[2] ?? 0,
-            
-            // 4. 總營收（金額 + 運費）
-            total_revenue: dbRow.total_revenue ?? dbRow.total_amount ?? dbRow.revenue ?? Object.values(dbRow)[3] ?? 0
+            total_orders: dbRow.total_orders ?? dbRow.total_orders_qty ?? dbRow.order_count ?? dbRow.orders ?? dbRow.TotalOrders ?? values[0] ?? 0,
+            total_price: dbRow.total_price ?? dbRow.total_sales ?? dbRow.sales_amount ?? dbRow.price_sum ?? dbRow.TotalPrice ?? values[1] ?? 0,
+            total_freight: dbRow.total_freight ?? dbRow.freight_sum ?? dbRow.freight ?? dbRow.TotalFreight ?? values[2] ?? 0,
+            total_revenue: dbRow.total_revenue ?? dbRow.total_amount ?? dbRow.revenue ?? dbRow.TotalRevenue ?? values[3] ?? 0
         };
 
-        console.log("[Railway] 強行轉換後、準備送給前端的資料:", JSON.stringify(alignedData));
+        console.log("[Railway] 轉換完成發送給前端的資料:", JSON.stringify(alignedData));
 
         return res.json({ 
             success: true, 
@@ -181,6 +172,7 @@ app.get('/revenue/:id', async (req, res) => {
         return res.status(500).json({ success: false, error: error.message });
     }
 });
+
 // Orders - 新增訂單（完全動態查詢賣家版，不寫死）
 app.post('/orders', async (req, res) => {
     try {
@@ -196,10 +188,8 @@ app.post('/orders', async (req, res) => {
             quantity 
         } = req.body;
 
-        // 💡 真正的動態修復：如果前端沒給 seller_id，後端自己去資料庫精準捕獲
         if (!seller_id) {
             console.log(`🔍 正在動態為商品 ID: ${product_id} 尋找對應的賣家...`);
-            
             const [itemRows] = await db.query(
                 'SELECT seller_id FROM Order_Items WHERE product_id = ? LIMIT 1', 
                 [product_id]
@@ -208,7 +198,6 @@ app.post('/orders', async (req, res) => {
             if (itemRows.length > 0 && itemRows[0].seller_id) {
                 seller_id = itemRows[0].seller_id;
             } else {
-                // 防呆機制：如果該商品在歷史紀錄完全沒人賣過，動態去 Sellers 表抓取目前資料庫的第一個賣家
                 const [backupSeller] = await db.query('SELECT seller_id FROM Sellers LIMIT 1');
                 if (backupSeller.length > 0) {
                     seller_id = backupSeller[0].seller_id;
@@ -223,7 +212,6 @@ app.post('/orders', async (req, res) => {
         const cleanedProductId = product_id?.trim();
         const cleanedSellerId = seller_id?.trim();
 
-        // 動態呼叫 Stored Procedure
         const [results] = await db.query(
             'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
@@ -260,27 +248,24 @@ app.get('/orders', async (req, res) => {
     }
 });
 
-// ✨【已修正】更新訂單狀態 / 取消訂單（全面對齊前端 POST 請求，阻斷 405 錯誤）
-app.post('/orders/:id/status', async (req, res) => {
+// ✨【終極相容路由】同時支持 POST 與 PATCH，完美阻斷 404/405 彈窗錯誤！
+const handleStatusUpdate = async (req, res) => {
     try {
         const { new_status } = req.body;
         const orderId = req.params.id;
 
-        console.log(`[Railway] 收到取消請求(POST) - 訂單 ID: ${orderId}, 狀態: ${new_status}`);
+        console.log(`[Railway] 收到取消請求(${req.method}) - 訂單 ID: ${orderId}, 狀態: ${new_status}`);
 
-        // 呼叫預存程序
         const [results] = await db.query(
             'CALL UpdateOrderStatus(?, ?)',
             [orderId, new_status]
         );
 
-        // 安全解構：防止任何因為多層陣列引發的未捕獲崩潰
         let finalResult = 'success';
         if (Array.isArray(results) && results.length > 0 && Array.isArray(results[0]) && results[0].length > 0) {
             finalResult = results[0][0].result || results[0][0].status || 'success';
         }
 
-        // 100% 回傳標準 JSON
         return res.json({ 
             success: true, 
             result: finalResult,
@@ -294,7 +279,11 @@ app.post('/orders/:id/status', async (req, res) => {
             error: error.message 
         });
     }
-});
+};
+
+// 雙路由綁定，管他前端是用 POST 還是 PATCH 戳，全部都能成功返回
+app.post('/orders/:id/status', handleStatusUpdate);
+app.patch('/orders/:id/status', handleStatusUpdate);
 
 app.get('/payments', async (req, res) => {
     try {
