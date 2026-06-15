@@ -1,36 +1,33 @@
-//
 const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
 
-// POST /api/auth/register
 router.post("/register", async (req, res) => {
-  const { firstName, lastName, city, zipCode } = req.body;
+  const { customerId } = req.body;
 
-  if (!firstName || !lastName) {
-    return res.status(400).json({ error: "姓名為必填" });
+  if (!customerId || !customerId.trim()) {
+    return res.status(400).json({ error: "請輸入 Customer ID" });
   }
 
   try {
-    // 自動產生新的 customer_id（格式 cust_000001）
-    const [rows] = await db.query(
-      "SELECT customer_id FROM Customers ORDER BY customer_id DESC LIMIT 1"
+    // 確認 ID 是否已存在
+    const [existing] = await db.query(
+      "SELECT customer_id FROM Customers WHERE customer_id = ?",
+      [customerId.trim()]
     );
-    let newId = "cust_000001";
-    if (rows.length > 0) {
-      const lastNum = parseInt(rows[0].customer_id.split("_")[1]);
-      newId = "cust_" + String(lastNum + 1).padStart(6, "0");
+    if (existing.length > 0) {
+      return res.status(409).json({ error: "此 Customer ID 已被使用" });
     }
 
     await db.query(
-      "INSERT INTO Customers (customer_id, customer_unique_id, customer_zip_code_prefix, customer_city) VALUES (?, UUID(), ?, ?)",
-      [newId, zipCode || "000", city || ""]
+      "INSERT INTO Customers (customer_id, customer_unique_id, customer_zip_code_prefix, customer_city) VALUES (?, UUID(), '106', '')",
+      [customerId.trim()]
     );
 
     res.status(201).json({
       message: "註冊成功",
-      customer_id: newId,
-      name: `${firstName} ${lastName}`
+      customer_id: customerId.trim(),
+      name: customerId.trim()
     });
   } catch (err) {
     console.error("Register error:", err);
