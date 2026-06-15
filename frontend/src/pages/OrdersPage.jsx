@@ -57,7 +57,7 @@ export default function OrdersPage() {
     try {
       // 💡 修正 1：把網址中間錯誤的 /api/ 拿掉，對齊你後端的路由
       const res = await fetch(
-        `https://delightful-fascination-production-82e0.up.railway.app/orders/${id}/status`,
+        `https://database-project-production-aefc.up.railway.app/orders/${id}/status`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
