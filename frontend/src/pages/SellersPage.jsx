@@ -18,7 +18,7 @@ export default function SellersPage() {
     try {
       // 💡 ✨【核心修正 1】將網址精準對齊後端定義的短路徑
       const res = await fetch(
-        `https://delightful-fascination-production-82e0.up.railway.app/revenue/${id}`
+        `https://database-project-production-aefc.up.railway.app/products/${id}/order`
       );
       
       if (!res.ok) throw new Error("伺服器回應錯誤");
