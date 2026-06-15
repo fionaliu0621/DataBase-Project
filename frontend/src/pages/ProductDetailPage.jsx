@@ -127,16 +127,10 @@ export default function ProductDetailPage() {
   <img 
   src={`/public/images/${product.id ?? id}.jpg`} 
   alt={product.name}
-  style={{ width:"100%", height:"100%", objectFit:"cover" }}
+  style={{ width:"100%", height:"100%", objectFit:"contain" }}
 />
 </div>
-            <div style={{ display:"flex", gap:8, padding:"12px 16px", borderTop:"0.5px solid #f0f0f0" }}>
-              {THUMBS.map((icon,i) => (
-                <div key={i} onClick={() => setThumb(i)} style={{ width:48, height:48, borderRadius:8, background: thumb===i ? "#fff" : "#f5f5f5", border: thumb===i ? "1px solid #111" : "1px solid transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color: thumb===i ? "#555" : "#ccc" }}>
-                  <i className={`ti ${icon}`} style={{ fontSize:18 }} aria-hidden="true" />
-                </div>
-              ))}
-            </div>
+            
           </div>
 
           <div style={card}>
