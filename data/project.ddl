@@ -29,6 +29,7 @@ CREATE TABLE Products (
     product_seller_id VARCHAR(50),
     product_name VARCHAR(50),
     product_category_name VARCHAR(50),
+    product_picture_id VARCHAR(50),
     product_name_length INT,
     product_description_length INT,
     product_photos_qty INT,
