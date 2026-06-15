@@ -237,7 +237,7 @@ app.get('/customers/:id/orders', async (req, res) => {
 
 // 啟動伺服器
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 後端伺服器已在 http://localhost:${PORT} 啟動！`);
     console.log(`💡 B同學的訂單 API 測試網址：http://localhost:${PORT}/api/orders`);
 });
