@@ -13,11 +13,27 @@ import { createContext, useContext, useState } from "react";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [customer, setCustomer] = useState(null);
+  
+  const [customer, setCustomer] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("customer");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  
 
-  const login = (customerData) => setCustomer(customerData);
-  const logout = () => setCustomer(null);
+  const login = (customerData) => {
+    sessionStorage.setItem("customer", JSON.stringify(customerData));
+    setCustomer(customerData);
+  };
+  const logout = () => {
+    sessionStorage.removeItem("customer");
+    setCustomer(null);
+  };
 
+  
   const value = {
     customer,
     customerId: customer?.customer_id ?? null,
