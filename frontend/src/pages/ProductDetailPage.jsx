@@ -5,7 +5,7 @@ import { getProductById } from "../api/products";
 import { useApi } from "../hooks/useApi";
 import { useCart } from "../context/CartContext";
 
-const THUMBS = ["ti-headphones","ti-package","ti-plug","ti-file-description"];
+const THUMBS = ["ti-camera", "ti-package", "ti-plug", "ti-file-description"];
 
 const card = { background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", padding:"1.75rem" };
 const label = { fontSize:11, letterSpacing:"1.5px", color:"#bbb", marginBottom:10 };
@@ -17,16 +17,9 @@ export default function ProductDetailPage() {
   const [qty, setQty] = useState(1);
   const [thumb, setThumb] = useState(0);
   const [added, setAdded] = useState(false);
+  const [imgError, setImgError] = useState(false); // ✨ 新增防破圖狀態
   const { addToCart, cartCount } = useCart();
 
-  // GET /products/:id
-  // 預期回傳形狀（與負責商品 API 的組員確認後可調整 mapping）：
-  // {
-  //   id, name, category, price, original_price, rating, review_count, stock,
-  //   specs: [[key, value], ...],
-  //   seller: { id, initials, name, location, joined, stats: [[val, label], ...] },
-  //   reviews: [{ initials, name, stars, date, text }, ...]
-  // }
   const { data: product, loading, error } = useApi(
     () => getProductById(id),
     [id]
@@ -68,13 +61,49 @@ export default function ProductDetailPage() {
       <div style={{ display:"grid", gridTemplateColumns:"1fr 300px" }}>
 
         <div style={{ padding:"2.5rem", display:"flex", flexDirection:"column", gap:"2rem" }}>
+          
+          {/* 📸 核心修改：商品相簿與真實照片渲染區塊 */}
           <div style={{ background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", overflow:"hidden" }}>
-            <div style={{ height:280, background:"#f9f9f9", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <i className={`ti ${THUMBS[thumb]}`} style={{ fontSize:80, color:"#ccc" }} aria-hidden="true" />
+            <div style={{ height:280, background:"#f9f9f9", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+              
+              {/* 如果切換到第 0 個頁籤（主圖），且圖片沒有載入失敗，就顯示真實商品照 */}
+              {thumb === 0 && !imgError ? (
+                <img 
+                  src={`/images/${product.id || id}.jpg`} 
+                  alt={product.name} 
+                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8 }}
+                  onError={() => setImgError(true)} // 圖片掛掉時，觸發保底機制
+                />
+              ) : (
+                /* 點擊其他頁籤（規格），或圖片載入失敗時，顯示對應的 Icon 占位符 */
+                <i 
+                  className={`ti ${thumb === 0 ? "ti-headphones" : THUMBS[thumb]}`} 
+                  style={{ fontSize:80, color:"#ccc" }} 
+                  aria-hidden="true" 
+                />
+              )}
+
             </div>
+            
+            {/* 下方切換按鈕 */}
             <div style={{ display:"flex", gap:8, padding:"12px 16px", borderTop:"0.5px solid #f0f0f0" }}>
-              {THUMBS.map((icon,i) => (
-                <div key={i} onClick={() => setThumb(i)} style={{ width:48, height:48, borderRadius:8, background: thumb===i ? "#fff" : "#f5f5f5", border: thumb===i ? "1px solid #111" : "1px solid transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color: thumb===i ? "#555" : "#ccc" }}>
+              {THUMBS.map((icon, i) => (
+                <div 
+                  key={i} 
+                  onClick={() => setThumb(i)} 
+                  style={{ 
+                    width:48, 
+                    height:48, 
+                    borderRadius:8, 
+                    background: thumb===i ? "#fff" : "#f5f5f5", 
+                    border: thumb===i ? "1px solid #111" : "1px solid transparent", 
+                    display:"flex", 
+                    alignItems:"center", 
+                    justifyContent:"center", 
+                    cursor:"pointer", 
+                    color: thumb===i ? "#555" : "#ccc" 
+                  }}
+                >
                   <i className={`ti ${icon}`} style={{ fontSize:18 }} aria-hidden="true" />
                 </div>
               ))}
@@ -87,7 +116,7 @@ export default function ProductDetailPage() {
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:"1.5rem" }}>
               <span style={{ fontSize:12, color:"#c8a96e", fontWeight:500 }}>★ {product.rating ?? "—"}</span>
               <span style={{ fontSize:12, color:"#bbb" }}>{product.review_count ?? product.reviewCount ?? 0} reviews</span>
-              <span style={{ fontSize:10, letterSpacing:"1px", padding:"3px 10px", borderRadius:99, border:"0.5px solid #e0e0e0", color:"#888" }}>PREMIUM</span>
+              <span style={{ fontSize:10, letterSpacing:"1px", padding:"3px 10px", borderRadius99:99, border:"0.5px solid #e0e0e0", color:"#888" }}>PREMIUM</span>
             </div>
             <div style={{ display:"flex", alignItems:"baseline", gap:10, marginBottom:"1.5rem" }}>
               <span style={{ fontSize:26, fontWeight:400, color:"#111", letterSpacing:"-0.5px" }}>NT${price.toLocaleString()}</span>
@@ -156,7 +185,7 @@ export default function ProductDetailPage() {
                   seller_id: seller.id ?? seller.seller_id,
                   seller: seller.name,
                   price,
-                  icon: THUMBS[0],
+                  icon: "ti-camera",
                 }, qty);
                 setAdded(true);
                 setTimeout(() => setAdded(false), 1500);
