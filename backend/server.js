@@ -121,6 +121,36 @@ app.get('/sellers/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+app.post('/orders', async (req, res) => {
+    try {
+        const { customer_id, product_id, seller_id, price,
+                freight_value, shipping_limit_date,
+                payment_type, payment_value, quantity,
+                payment_installments } = req.body;
+
+        const [results] = await db.query(
+            'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [customer_id, product_id, seller_id, price,
+             freight_value, shipping_limit_date,
+             payment_type, payment_value, quantity]
+        );
+        res.json({ order_id: results[0][0].order_id });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+app.get('/payments', async (req, res) => {
+    try {
+        const { order_id } = req.query;
+        const [rows] = await db.query(
+            'SELECT * FROM Order_Payments WHERE order_id = ?',
+            [order_id]
+        );
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // 啟動伺服器
 const PORT = process.env.PORT || 3000;

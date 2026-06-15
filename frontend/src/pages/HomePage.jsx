@@ -174,12 +174,12 @@ export default function HomePage() {
                       e.preventDefault();
                       e.stopPropagation();
                       addToCart({
-                        id: pid,
-                        name: p.name ?? p.product_name,
-                        seller_id: p.seller_id,
-                        seller: p.seller_name ?? p.seller,
-                        price: Number(p.price),
-                        icon: CATEGORY_ICON[p.category] || "ti-package",
+                          id: pid,
+                          name: p.product_name ?? p.name,
+                          seller_id: p.seller_id,
+                          seller: p.seller_name ?? p.seller,
+                          price: Number(p.product_price ?? p.price),
+                          icon: CATEGORY_ICON[p.product_category_name ?? p.category] || "ti-package",
                       }, 1);
                     }}
                     style={{ position:"absolute", top:10, right:10, width:28, height:28, borderRadius:"50%", border:"0.5px solid #e8e8e8", background:"#fff", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"#666", fontSize:13 }}

@@ -10,9 +10,8 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/orders': {
-        target: 'http://localhost:3000/api',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/orders/, '/api/orders'),
       },
       '/sellers': {
         target: 'http://localhost:3000',
@@ -23,6 +22,10 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/reviews': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/customers': {
         target: 'http://localhost:3000',
         changeOrigin: true,
       },

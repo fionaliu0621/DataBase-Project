@@ -39,7 +39,8 @@ export default function CartPage() {
   const navigate = useNavigate();
 
   const sub = items.reduce((s,it)=>s+it.price*it.qty,0);
-  const total = sub + 60 - 710;
+  const shipping = sub > 1000 ? 0 : 60;
+  const total = sub + shipping;
 
   // 下單成功後，依第一筆 order_id 查詢付款明細
   // GET /payments?order_id=... -> Order_Payments（一筆訂單可有多筆付款紀錄）
@@ -135,7 +136,7 @@ export default function CartPage() {
           <div style={secLabel}>SHIPPING ADDRESS</div>
           <div style={{ background:"#fff", borderRadius:12, border:"0.5px solid #e8e8e8", padding:"1.5rem", marginBottom:"2rem" }}>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-              {[["FIRST NAME","Wei"],["LAST NAME","Chen"]].map(([l,p]) => (
+              {[["FIRST NAME",""],["LAST NAME",""]].map(([l,p]) => (
                 <div key={l}>
                   <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:5 }}>{l}</div>
                   <input style={input} placeholder={p} />
@@ -143,9 +144,9 @@ export default function CartPage() {
               ))}
               <div style={{ gridColumn:"1/-1" }}>
                 <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:5 }}>ADDRESS</div>
-                <input style={input} placeholder="No. 162, Section 1, Heping East Rd" />
+                <input style={input} placeholder="" />
               </div>
-              {[["CITY","Taipei"],["POSTAL CODE","10617"]].map(([l,p]) => (
+              {[["CITY",""],["POSTAL CODE",""]].map(([l,p]) => (
                 <div key={l}>
                   <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:5 }}>{l}</div>
                   <input style={input} placeholder={p} />
@@ -198,9 +199,9 @@ export default function CartPage() {
 
         <div style={{ padding:"2.5rem", background:"#fff", borderLeft:"0.5px solid #e8e8e8" }}>
           <div style={{ fontSize:11, letterSpacing:"1.5px", color:"#bbb", marginBottom:"1.5rem" }}>ORDER SUMMARY</div>
-          {[["Subtotal","NT$"+sub.toLocaleString()],["Shipping","NT$60"],["Discount","−NT$710"]].map(([l,v],i) => (
+          {[["Subtotal","NT$"+sub.toLocaleString()],["Shipping", sub > 1000 ? "FREE" : "NT$60"]].map(([l,v],i) => (
             <div key={l} style={{ display:"flex", justifyContent:"space-between", fontSize:13, padding:"5px 0", color:"#888" }}>
-              <span>{l}</span><span style={{ color: i===2 ? "#3b6d11" : "#888" }}>{v}</span>
+              <span>{l}</span><span>{v}</span>
             </div>
           ))}
           <div style={{ display:"flex", justifyContent:"space-between", fontSize:15, fontWeight:500, borderTop:"0.5px solid #e8e8e8", paddingTop:14, marginTop:8 }}>
