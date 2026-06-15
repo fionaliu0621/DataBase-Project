@@ -144,7 +144,7 @@ export default function ProductDetailPage() {
               <div style={{ display:"flex", alignItems:"center", border:"0.5px solid #e0e0e0", borderRadius:99, overflow:"hidden" }}>
                 <button onClick={() => setQty(q => Math.max(1,q-1))} style={{ width:30, height:30, border:"none", background:"#fff", cursor:"pointer", fontSize:16, color:"#555" }}>−</button>
                 <span style={{ width:28, textAlign:"center", fontSize:13, fontWeight:500 }}>{qty}</span>
-                <button onClick={() => setQty(q => Math.min(99,q+1))} style={{ width:30, height:30, border:"none", background:"#fff", cursor:"pointer", fontSize:16, color:"#555" }}>+</button>
+                <button onClick={() => setQty(q => Math.min(stock,q+1))} style={{ width:30, height:30, border:"none", background:"#fff", cursor:"pointer", fontSize:16, color:"#555" }}>+</button>
               </div>
             </div>
             <button
