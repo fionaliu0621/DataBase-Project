@@ -474,18 +474,35 @@ export default function HomePage() {
 
           {/* 加入了 .slice(0, 48) 限制只顯示前 48 筆 */}
           {!loading &&
-            displayProducts.slice(0, 48).map((p) => {
-              const pid = p.id ?? p.product_id;
-              return (
-                <Link
-                  key={pid}
-                  to={`/products/${pid}`}
-                  style={{
-                    ...s.pcard,
-                    textDecoration: "none",
-                    color: "inherit",
-                  }}
-                >
+          displayProducts
+              .filter((p) => {
+                const pid = p.id ?? p.product_id;
+                
+                // 檢查是否為真實資料的 ID (例如 prod_00001)
+                if (pid && String(pid).startsWith("prod_")) {
+                  // 把 'prod_' 拔掉，只留數字並轉換成整數來判斷
+                  const num = parseInt(pid.replace("prod_", ""), 10);
+                  // 只允許數字在 1 到 48 之間的商品通過
+                  return num >= 1 && num <= 48;
+                }
+                
+                // 如果是開發測試用的 mock 資料 (例如 p001)，就預設放行
+                return true; 
+              })
+              // 為了保險起見，如果是 mock 資料我們也最多只顯示前 48 個
+              .slice(0, 48)
+              .map((p) => {
+                const pid = p.id ?? p.product_id;
+                return (
+                  <Link
+                    key={pid}
+                    to={`/products/${pid}`}
+                    style={{
+                      ...s.pcard,
+                      textDecoration: "none",
+                      color: "inherit",
+                    }}
+                  >
                   <div style={s.pimg}>
                     {p.image ? (
                       <img
