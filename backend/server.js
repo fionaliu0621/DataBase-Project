@@ -327,6 +327,33 @@ app.get('/customers/:id/orders', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// 取得商品對應的 order_id
+app.get('/products/:id/order', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT order_id FROM Order_Items WHERE product_id = ? LIMIT 1',
+            [req.params.id]
+        );
+        res.json({ order_id: rows[0]?.order_id ?? null });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 新增評論
+app.post('/reviews', async (req, res) => {
+    try {
+        const { order_id, review_score, review_comment_title, review_comment_message } = req.body;
+        const review_id = `rev_${Date.now()}`;
+        await db.query(
+            'INSERT INTO Order_Reviews (review_id, order_id, review_score, review_comment_title, review_comment_message, review_creation_date) VALUES (?, ?, ?, ?, ?, NOW())',
+            [review_id, order_id, review_score, review_comment_title, review_comment_message]
+        );
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
