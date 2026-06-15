@@ -16,7 +16,6 @@ const S = {
 
 const NAV_LINKS = [
   { label:"Products",    to:"/"            },
-  { label:"Collections", to:"/collections" },
   { label:"Sellers",     to:"/sellers"     },
   { label:"About",       to:"/about"       },
 ];

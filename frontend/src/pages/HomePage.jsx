@@ -161,8 +161,17 @@ export default function HomePage() {
               return (
                 <Link key={pid} to={`/products/${pid}`} style={{ ...s.pcard, textDecoration:"none", color:"inherit" }}>
                   <div style={s.pimg}>
-                    <i className={`ti ${CATEGORY_ICON[p.category] || "ti-package"}`} style={{ fontSize:40, color:"#ccc" }} aria-hidden="true" />
-                  </div>
+    {p.image ? (
+        <img 
+            src={p.image} 
+            alt={p.product_name}
+            style={{ width:"100%", height:"100%", objectFit:"cover", borderRadius:8 }}
+            onError={(e) => { e.target.style.display='none'; }}
+        />
+    ) : (
+        <i className={`ti ${CATEGORY_ICON[p.product_category_name ?? p.category] || "ti-package"}`} style={{ fontSize:40, color:"#ccc" }} aria-hidden="true" />
+    )}
+</div>
                   <div style={s.pname}>{p.product_name ?? p.name ?? p.product_id}</div>
                   <div style={s.pcat}>{(p.category ?? "").toUpperCase()}</div>
                   <div style={s.pfoot}>
