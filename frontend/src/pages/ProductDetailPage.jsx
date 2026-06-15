@@ -148,22 +148,24 @@ export default function ProductDetailPage() {
               </div>
             </div>
             <button
-              style={btnBlack}
-              onClick={() => {
-                addToCart({
-                  id: product.id ?? id,
-                  name: product.name,
-                  seller_id: seller.id ?? seller.seller_id,
-                  seller: seller.name,
-                  price,
-                  icon: THUMBS[0],
-                }, qty);
-                setAdded(true);
-                setTimeout(() => setAdded(false), 1500);
-              }}
-            >
-              {added ? "Added ✓" : "Add to bag"}
-            </button>
+                style={{ ...btnBlack, background: stock === 0 ? "#ccc" : "#111", cursor: stock === 0 ? "default" : "pointer" }}
+                disabled={stock === 0}
+                onClick={() => {
+                  if (stock === 0) return;
+                  addToCart({
+                    id: product.id ?? id,
+                    name: product.name,
+                    seller_id: seller.id ?? seller.seller_id,
+                    seller: seller.name,
+                    price,
+                    icon: THUMBS[0],
+                  }, qty);
+                  setAdded(true);
+                  setTimeout(() => setAdded(false), 1500);
+                }}
+              >
+                {stock === 0 ? "Out of stock" : added ? "Added ✓" : "Add to bag"}
+</button>
             <button style={btnOutline}>Buy now</button>
             <div style={{ marginTop:"1.25rem", paddingTop:"1.25rem", borderTop:"0.5px solid #f0f0f0", display:"flex", flexDirection:"column", gap:8 }}>
               {[["ti-truck","Est. delivery May 30 – Jun 1"],["ti-shield-check","Buyer protection included"],["ti-refresh","7-day returns"]].map(([icon,text]) => (
