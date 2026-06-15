@@ -2,8 +2,8 @@ const db = require('../config/db');
 
 exports.getAllProducts = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM Products LIMIT 50');
-        res.json({ success: true, data: rows });
+        const [rows] = await db.query('SELECT * FROM Products ORDER BY product_id ASC LIMIT 48');
+        res.json(sellers) ;
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
