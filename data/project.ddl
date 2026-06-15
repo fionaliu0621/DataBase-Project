@@ -3,7 +3,8 @@ CREATE TABLE Geolocation (
     geolocation_zip_code_prefix VARCHAR(10) PRIMARY KEY,
     geolocation_lat DECIMAL(10, 8),
     geolocation_lng DECIMAL(11, 8),
-    geolocation_city VARCHAR(50)
+    geolocation_city VARCHAR(50),
+    geolocation_state VARCHAR(2)
 );
 
 -- 3. 建立買家資料表
@@ -12,6 +13,7 @@ CREATE TABLE Customers (
     customer_unique_id VARCHAR(50) NOT NULL,
     customer_zip_code_prefix VARCHAR(10),
     customer_city VARCHAR(50),
+    customer_state VARCHAR(2),
     FOREIGN KEY (customer_zip_code_prefix) REFERENCES Geolocation(geolocation_zip_code_prefix)
 );
 
@@ -20,13 +22,13 @@ CREATE TABLE Sellers (
     seller_id VARCHAR(50) PRIMARY KEY,
     seller_zip_code_prefix VARCHAR(10),
     seller_city VARCHAR(50),
+    seller_state VARCHAR(2),
     FOREIGN KEY (seller_zip_code_prefix) REFERENCES Geolocation(geolocation_zip_code_prefix)
 );
 
 -- 5. 建立商品資料表 (已修正欄位命名一致性)
 CREATE TABLE Products (
     product_id VARCHAR(50) PRIMARY KEY,
-    product_name VARCHAR(50),
     product_category_name VARCHAR(50),
     product_name_length INT,
     product_description_length INT,
@@ -36,7 +38,6 @@ CREATE TABLE Products (
     product_height_cm INT,
     product_width_cm INT,
     product_available INT,
-    product_price INT,
     FOREIGN KEY (product_category_name) REFERENCES Product_Category_Name_Translation(product_category_name)
 );
 
@@ -74,7 +75,7 @@ CREATE TABLE Order_Items (
 CREATE TABLE Order_Payments (
     order_id VARCHAR(50),
     payment_sequential INT,
-    payment_type VARCHAR(20) CHECK (payment_type IN ('credit_card', 'cash', 'debit_card', 'transfer')),
+    payment_type VARCHAR(20) CHECK (payment_type IN ('credit_card', 'voucher', 'debit_card', 'transfer')),
     payment_installments INT,
     payment_value DECIMAL(10, 2),
     PRIMARY KEY (order_id, payment_sequential),
