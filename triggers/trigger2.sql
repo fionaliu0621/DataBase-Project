@@ -1,3 +1,5 @@
+USE railway;
+
 DELIMITER $$
 
 CREATE TRIGGER trg_review_check
