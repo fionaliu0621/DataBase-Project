@@ -134,23 +134,80 @@ app.get('/revenue/:id', async (req, res) => {
 });
 
 // Orders
+// Orders - 新增訂單（已修正 Railway 雲端外鍵與格式化相容問題）
 app.post('/orders', async (req, res) => {
     try {
-        const { customer_id, product_id, seller_id, price,
-                freight_value, shipping_limit_date,
-                payment_type, payment_value, quantity } = req.body;
+        const { 
+            customer_id, 
+            product_id, 
+            seller_id, 
+            price,
+            freight_value, 
+            shipping_limit_date,
+            payment_type, 
+            payment_value, 
+            quantity 
+        } = req.body;
+
+        // 💡 關鍵點 1：文字欄位強制去前後空白，避免因為隱藏換行或空白導致外鍵 (FK) 失敗
+        const cleanedCustomerId = customer_id?.trim();
+        const cleanedProductId = product_id?.trim();
+        const cleanedSellerId = seller_id?.trim();
+
+        console.log("正在嘗試透過 SP 建立訂單，檢查傳入參數:", {
+            customer_id: cleanedCustomerId,
+            product_id: cleanedProductId,
+            seller_id: cleanedSellerId,
+            price,
+            payment_value
+        });
+
+        // 💡 關鍵點 2：調用預存程序 AddOrder
         const [results] = await db.query(
             'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [customer_id, product_id, seller_id, price,
-             freight_value, shipping_limit_date,
-             payment_type, payment_value, quantity]
+            [
+                cleanedCustomerId, 
+                cleanedProductId, 
+                cleanedSellerId, 
+                price || 0,
+                freight_value || 0, 
+                shipping_limit_date || new Date(), // 如果沒給時間，預設給當前時間
+                payment_type || 'credit_card', 
+                payment_value || 0, 
+                quantity || 1
+            ]
         );
-        res.json({ order_id: results[0][0].order_id });
+
+        // 💡 關鍵點 3：修正 MySQL 預存程序回傳的雙重陣列解構格式
+        // 呼叫 SP 回傳的第一層是結果集陣列，結果集裡面的第一個元素才是你的 SELECT 成果
+        if (results && results[0] && results[0][0]) {
+            return res.json({ 
+                success: true, 
+                order_id: results[0][0].order_id 
+            });
+        } else {
+            // 如果 SP 成功跑完但沒有 SELECT 回傳 order_id，嘗試從結果其他層或給予預設成功提示
+            return res.json({ 
+                success: true, 
+                message: "訂單建立成功，但未讀取到回傳 ID。" 
+            });
+        }
+
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("❌ 建立訂單失敗，詳細錯誤原因:", error);
+        
+        // 💡 關鍵點 4：優化錯誤提示，方便你在 Railway 部署日誌 (Deploy Logs) 一眼看出是哪個外鍵噴錯
+        if (error.message.includes('foreign key constraint fails')) {
+            return res.status(400).json({
+                success: false,
+                error: "外鍵約束失敗。請確認您傳入的 customer_id, product_id 或 seller_id 是否「真實存在」於雲端資料庫中！",
+                sqlMessage: error.message
+            });
+        }
+        
+        res.status(500).json({ success: false, error: error.message });
     }
 });
-
 app.get('/orders', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM Orders ORDER BY order_purchase_timestamp DESC LIMIT 20');
