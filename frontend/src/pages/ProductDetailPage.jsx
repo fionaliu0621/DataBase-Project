@@ -125,11 +125,10 @@ export default function ProductDetailPage() {
           <div style={{ background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", overflow:"hidden" }}>
             <div style={{ height:280, background:"#f9f9f9", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
   <img 
-    src={`/images/${product.id ?? id}.jpg`} 
-    alt={product.name}
-    style={{ width:"100%", height:"100%", objectFit:"cover" }}
-    onError={e => { e.target.style.display="none"; }}
-  />
+  src={`/public/images/${product.id ?? id}.jpg`} 
+  alt={product.name}
+  style={{ width:"100%", height:"100%", objectFit:"cover" }}
+/>
 </div>
             <div style={{ display:"flex", gap:8, padding:"12px 16px", borderTop:"0.5px solid #f0f0f0" }}>
               {THUMBS.map((icon,i) => (
