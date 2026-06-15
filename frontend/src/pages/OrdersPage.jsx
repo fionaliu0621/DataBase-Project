@@ -36,7 +36,7 @@ export default function OrdersPage() {
   const [q, setQ] = useState("");
   const { customerId } = useAuth();
 
-  const { data, loading, error } = useApi(
+  const { data, loading, error, refetch } = useApi(
     () => getCustomerOrders(customerId),
     [customerId]
   );
@@ -51,6 +51,25 @@ export default function OrdersPage() {
       items.some(it => (it.name ?? it.product_name ?? "").toLowerCase().includes(q.toLowerCase()))
     );
   });
+
+  const handleCancel = async (id) => {
+    if (!window.confirm('確定要取消這筆訂單嗎？')) return;
+    try {
+      const res = await fetch(
+        `https://delightful-fascination-production-82e0.up.railway.app/api/orders/${id}/status`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_status: 'canceled' })
+        }
+      );
+      const data = await res.json();
+      alert(data.result ?? '取消成功');
+      window.location.reload();
+    } catch (err) {
+      alert('取消失敗：' + err.message);
+    }
+  };
 
   return (
     <div style={{ fontFamily:"'Inter',sans-serif", background:"#fafafa", minHeight:"100vh" }}>
@@ -130,23 +149,10 @@ export default function OrdersPage() {
                 </>}
                 {status==="shipped" && <button style={{ marginLeft:"auto", padding:"5px 14px", border:"0.5px solid #e8e8e8", borderRadius:99, fontSize:11, cursor:"pointer", background:"#fff", fontFamily:"'Inter',sans-serif" }}>Track package</button>}
                 {(status==="created" || status==="approved" || status==="processing") && (
-  <button
-    onClick={async () => {
-      try {
-        const res = await fetch(`https://delightful-fascination-production-82e0.up.railway.app/api/orders/${id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ new_status: 'canceled' })
-        });
-        const data = await res.json();
-        alert(data.result ?? '已送出取消請求');
-        window.location.reload();
-      } catch (err) {
-        alert('取消失敗：' + err.message);
-      }
-    }}
-    style={{ marginLeft:"auto", padding:"5px 14px", border:"0.5px solid #fcc", borderRadius:99, fontSize:11, cursor:"pointer", background:"#fff", color:"#e24b4a", fontFamily:"'Inter',sans-serif" }}>Cancel order</button>
-)}
+                  <button
+                    onClick={() => handleCancel(id)}
+                    style={{ marginLeft:"auto", padding:"5px 14px", border:"0.5px solid #fcc", borderRadius:99, fontSize:11, cursor:"pointer", background:"#fff", color:"#e24b4a", fontFamily:"'Inter',sans-serif" }}>Cancel order</button>
+                )}
                 {status==="canceled" && (
                   <span style={{ marginLeft:"auto", fontSize:11, color:"#bbb" }}>This order was canceled.</span>
                 )}
