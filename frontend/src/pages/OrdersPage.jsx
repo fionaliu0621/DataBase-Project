@@ -130,8 +130,23 @@ export default function OrdersPage() {
                 </>}
                 {status==="shipped" && <button style={{ marginLeft:"auto", padding:"5px 14px", border:"0.5px solid #e8e8e8", borderRadius:99, fontSize:11, cursor:"pointer", background:"#fff", fontFamily:"'Inter',sans-serif" }}>Track package</button>}
                 {(status==="created" || status==="approved" || status==="processing") && (
-                  <button style={{ marginLeft:"auto", padding:"5px 14px", border:"0.5px solid #fcc", borderRadius:99, fontSize:11, cursor:"pointer", background:"#fff", color:"#e24b4a", fontFamily:"'Inter',sans-serif" }}>Cancel order</button>
-                )}
+  <button
+    onClick={async () => {
+      try {
+        const res = await fetch(`https://delightful-fascination-production-82e0.up.railway.app/api/orders/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_status: 'canceled' })
+        });
+        const data = await res.json();
+        alert(data.result ?? '已送出取消請求');
+        window.location.reload();
+      } catch (err) {
+        alert('取消失敗：' + err.message);
+      }
+    }}
+    style={{ marginLeft:"auto", padding:"5px 14px", border:"0.5px solid #fcc", borderRadius:99, fontSize:11, cursor:"pointer", background:"#fff", color:"#e24b4a", fontFamily:"'Inter',sans-serif" }}>Cancel order</button>
+)}
                 {status==="canceled" && (
                   <span style={{ marginLeft:"auto", fontSize:11, color:"#bbb" }}>This order was canceled.</span>
                 )}
