@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS `team11`;
-USE `team11`;
+CREATE DATABASE IF NOT EXISTS `railway`;
+USE `railway`;
 
 -- 1. 建立地理位置表
 CREATE TABLE IF NOT EXISTS `Geolocation` (
@@ -10,11 +10,14 @@ CREATE TABLE IF NOT EXISTS `Geolocation` (
     `geolocation_state` VARCHAR(2)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+<<<<<<< HEAD
 INSERT IGNORE INTO `Geolocation` (`geolocation_zip_code_prefix`, `geolocation_lat`, `geolocation_lng`, `geolocation_city`, `geolocation_state`) VALUES
 ('100', 25.03300000, 121.56540000, 'Taipei', 'TP'),
 ('400', 24.14770000, 120.67360000, 'Taichung', 'TC'),
 ('800', 22.62730000, 120.30140000, 'Kaohsiung', 'KH');
 
+=======
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
 
 
 -- 3. 建立買家資料表
@@ -27,6 +30,7 @@ CREATE TABLE IF NOT EXISTS `Customers` (
     FOREIGN KEY (`customer_zip_code_prefix`) REFERENCES `Geolocation`(`geolocation_zip_code_prefix`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+<<<<<<< HEAD
 INSERT IGNORE INTO `Customers` (`customer_id`, `customer_unique_id`, `customer_zip_code_prefix`, `customer_city`, `customer_state`) VALUES
 ('cust_1', 'uniq_cust_1', '100', 'Taipei', 'TP'),
 ('cust_2', 'uniq_cust_2', '400', 'Taichung', 'TC'),
@@ -34,6 +38,8 @@ INSERT IGNORE INTO `Customers` (`customer_id`, `customer_unique_id`, `customer_z
 ('cust_4', 'uniq_cust_4', '100', 'Taipei', 'TP'),
 ('cust_5', 'uniq_cust_5', '400', 'Taichung', 'TC');
 
+=======
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
 
 -- 4. 建立賣家資料表
 CREATE TABLE IF NOT EXISTS `Sellers` (
@@ -44,10 +50,13 @@ CREATE TABLE IF NOT EXISTS `Sellers` (
     FOREIGN KEY (`seller_zip_code_prefix`) REFERENCES `Geolocation`(`geolocation_zip_code_prefix`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+<<<<<<< HEAD
 INSERT IGNORE INTO `Sellers` (`seller_id`, `seller_zip_code_prefix`, `seller_city`, `seller_state`) VALUES
 ('sell_1', '400', 'Taichung', 'TC'),
 ('sell_2', '800', 'Kaohsiung', 'KH'),
 ('sell_3', '100', 'Taipei', 'TP');
+=======
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
 
 
 -- 5. 建立商品資料表
@@ -61,8 +70,15 @@ INSERT IGNORE INTO `Sellers` (`seller_id`, `seller_zip_code_prefix`, `seller_cit
 --   toys        <-> Toys
 CREATE TABLE IF NOT EXISTS `Products` (
     `product_id` VARCHAR(50) PRIMARY KEY,
+<<<<<<< HEAD
     `product_name` VARCHAR(100) NOT NULL,
     `product_category_name` VARCHAR(50) CHECK (`product_category_name` IN ('electronics', 'fashion', 'home_living', 'sports', 'books', 'beauty', 'toys')),
+=======
+    `product_seller_id` VARCHAR(50),
+    `product_name` VARCHAR(50),
+    `product_category_name` VARCHAR(50),
+    `product_picture_id` VARCHAR(50),
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
     `product_name_length` INT,
     `product_description_length` INT,
     `product_photos_qty` INT,
@@ -71,6 +87,7 @@ CREATE TABLE IF NOT EXISTS `Products` (
     `product_height_cm` INT,
     `product_width_cm` INT,
     `product_available` INT,
+<<<<<<< HEAD
     `product_price` DECIMAL(10, 2)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -139,6 +156,12 @@ ON DUPLICATE KEY UPDATE
   product_width_cm           = VALUES(product_width_cm),
   product_available          = VALUES(product_available),
   product_price              = VALUES(product_price);
+=======
+    `product_price` INT,
+    FOREIGN KEY (`product_seller_id`) REFERENCES `Sellers`(`seller_id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
 
 
 -- 6. 建立訂單主表
@@ -155,6 +178,7 @@ CREATE TABLE IF NOT EXISTS `Orders` (
     FOREIGN KEY (`customer_id`) REFERENCES `Customers`(`customer_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+<<<<<<< HEAD
 INSERT IGNORE INTO `Orders` (`order_id`, `customer_id`, `order_status`, `order_purchase_timestamp`, `order_approved_at`, `order_delivered_carrier_date`, `order_delivered_customer_date`, `order_estimated_delivery_date`, `shipping_limit_date`) VALUES
 ('ord_1', 'cust_1', 'delivered', '2026-06-01 04:00:00', '2026-06-01 04:30:00', '2026-06-02 04:30:00', '2026-06-04 04:30:00', '2026-06-08 04:00:00', '2026-06-04 04:00:00'),
 ('ord_2', 'cust_3', 'shipped', '2026-06-02 07:00:00', '2026-06-02 07:15:00', '2026-06-03 07:15:00', NULL, '2026-06-09 07:00:00', '2026-06-05 07:00:00'),
@@ -163,6 +187,8 @@ INSERT IGNORE INTO `Orders` (`order_id`, `customer_id`, `order_status`, `order_p
 ('ord_5', 'cust_1', 'canceled', '2026-06-05 03:00:00', '2026-06-05 03:10:00', NULL, NULL, '2026-06-12 03:00:00', '2026-06-08 03:00:00');
 
 
+=======
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
 -- 7. 建立訂單項目表
 CREATE TABLE IF NOT EXISTS `Order_Items` (
     `order_id` VARCHAR(50),
@@ -179,6 +205,7 @@ CREATE TABLE IF NOT EXISTS `Order_Items` (
     FOREIGN KEY (`seller_id`) REFERENCES `Sellers`(`seller_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+<<<<<<< HEAD
 INSERT IGNORE INTO `Order_Items` (`order_id`, `order_item_id`, `product_id`, `seller_id`, `shipping_limit_date`, `price`, `freight_value`, `order_item_quantity`) VALUES
 ('ord_1', 1, 'prod_4', 'sell_2', '2026-06-04 04:00:00', 123.45, 15.20, 1),
 ('ord_2', 1, 'prod_1', 'sell_1', '2026-06-05 07:00:00', 340.00, 25.00, 1),
@@ -186,6 +213,8 @@ INSERT IGNORE INTO `Order_Items` (`order_id`, `order_item_id`, `product_id`, `se
 ('ord_4', 1, 'prod_5', 'sell_1', '2026-06-07 09:00:00', 199.00, 18.80, 1),
 ('ord_5', 1, 'prod_3', 'sell_2', '2026-06-08 03:00:00', 88.50, 12.00, 1);
 
+=======
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
 
 -- 8. 建立付款紀錄表
 CREATE TABLE IF NOT EXISTS `Order_Payments` (
@@ -198,6 +227,7 @@ CREATE TABLE IF NOT EXISTS `Order_Payments` (
     FOREIGN KEY (`order_id`) REFERENCES `Orders`(`order_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+<<<<<<< HEAD
 INSERT IGNORE INTO `Order_Payments` (`order_id`, `payment_sequential`, `payment_type`, `payment_installments`, `payment_value`) VALUES
 ('ord_1', 1, 'credit_card', 3, 138.65),
 ('ord_2', 1, 'transfer', 1, 365.00),
@@ -205,6 +235,8 @@ INSERT IGNORE INTO `Order_Payments` (`order_id`, `payment_sequential`, `payment_
 ('ord_4', 1, 'credit_card', 6, 217.80),
 ('ord_5', 1, 'voucher', 1, 100.50);
 
+=======
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
 
 -- 9. 建立評價紀錄表
 CREATE TABLE IF NOT EXISTS `Order_Reviews` (
@@ -217,7 +249,10 @@ CREATE TABLE IF NOT EXISTS `Order_Reviews` (
     `review_answer_timestamp` TIMESTAMP NULL,
     FOREIGN KEY (`order_id`) REFERENCES `Orders`(`order_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+<<<<<<< HEAD
 
 INSERT IGNORE INTO `Order_Reviews` (`review_id`, `order_id`, `review_score`, `review_comment_title`, `review_comment_message`, `review_creation_date`, `review_answer_timestamp`) VALUES
 ('rev_1', 'ord_1', 5, 'Great Service', 'Comment message for order ord_1.', '2026-06-05 04:30:00', '2026-06-05 09:30:00'),
 ('rev_5', 'ord_5', 1, 'Canceled Order', 'Comment message for order ord_5.', '2026-06-09 03:00:00', '2026-06-09 08:00:00');
+=======
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f

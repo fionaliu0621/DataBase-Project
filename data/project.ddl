@@ -39,8 +39,15 @@ CREATE TABLE Sellers (
 -- 改用 CHECK 約束直接限制合法的分類 slug，避免商品分類打錯字。
 CREATE TABLE Products (
     product_id VARCHAR(50) PRIMARY KEY,
+<<<<<<< HEAD
     product_name VARCHAR(100) NOT NULL,
     product_category_name VARCHAR(50) CHECK (product_category_name IN ('electronics', 'fashion', 'home_living', 'sports', 'books', 'beauty', 'toys')),
+=======
+    product_seller_id VARCHAR(50),
+    product_name VARCHAR(50),
+    product_category_name VARCHAR(50),
+    product_picture_id VARCHAR(50),
+>>>>>>> faa7f711ff911564d79446f417cf934d853eec5f
     product_name_length INT,
     product_description_length INT,
     product_photos_qty INT,
