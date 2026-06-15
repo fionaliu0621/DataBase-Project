@@ -6,7 +6,7 @@
 //   或設定單一規則把所有後端路徑轉發，視後端組員實際 route 規劃調整
 // - 統一處理 JSON 解析與錯誤格式
 
-const BASE_URL = import.meta.env.VITE_API_URL;//"https://database-project-production-aefc.up.railway.app";//
+const BASE_URL = "http://localhost:3000";
 
 class ApiError extends Error {
   constructor(message, status, data) {
