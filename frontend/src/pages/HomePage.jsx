@@ -473,24 +473,25 @@ export default function HomePage() {
           )}
 
           {/* 加入了 .slice(0, 48) 限制只顯示前 48 筆 */}
+
           {!loading &&
-          displayProducts
+            displayProducts
+              // 1. 先用 filter 嚴格把關 ID
               .filter((p) => {
                 const pid = p.id ?? p.product_id;
                 
-                // 檢查是否為真實資料的 ID (例如 prod_00001)
+                // 確認 ID 存在，且是 prod_ 開頭
                 if (pid && String(pid).startsWith("prod_")) {
-                  // 把 'prod_' 拔掉，只留數字並轉換成整數來判斷
-                  const num = parseInt(pid.replace("prod_", ""), 10);
-                  // 只允許數字在 1 到 48 之間的商品通過
+                  // 把 'prod_' 去掉，轉成數字來判斷
+                  const num = parseInt(String(pid).replace("prod_", ""), 10);
+                  // 只有數字在 1 到 48 之間的商品才能過關
                   return num >= 1 && num <= 48;
                 }
                 
-                // 如果是開發測試用的 mock 資料 (例如 p001)，就預設放行
+                // 如果是開發測試用的 p001 資料，預設放行
                 return true; 
               })
-              // 為了保險起見，如果是 mock 資料我們也最多只顯示前 48 個
-              .slice(0, 48)
+              // 2. 再進行畫面渲染
               .map((p) => {
                 const pid = p.id ?? p.product_id;
                 return (
@@ -503,6 +504,7 @@ export default function HomePage() {
                       color: "inherit",
                     }}
                   >
+                  {/* ... 下面的卡片內容維持原樣，不需要動 ... */}
                   <div style={s.pimg}>
                     {p.image ? (
                       <img
