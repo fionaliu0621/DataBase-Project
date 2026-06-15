@@ -8,8 +8,8 @@ PASSWORD = "2p5fEhW#FH7M"
 HOST = "140.122.184.121"
 PORT = "3306"
 DB_NAME = "team11"
-
-engine = create_engine(f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}")
+engine = create_engine("mysql+pymysql://root:JDiiUrtvAtxhDWJTgyoYPbABBLXjsvXM@thomas.proxy.rlwy.net:45240/railway")
+# engine = create_engine(f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}")
 
 # ⚠️ 關鍵：依據外鍵相依性排定嚴格的匯入順序
 import_order = [
