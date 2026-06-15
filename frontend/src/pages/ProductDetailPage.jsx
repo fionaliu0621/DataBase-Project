@@ -123,9 +123,14 @@ export default function ProductDetailPage() {
 
         <div style={{ padding:"2.5rem", display:"flex", flexDirection:"column", gap:"2rem" }}>
           <div style={{ background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", overflow:"hidden" }}>
-            <div style={{ height:280, background:"#f9f9f9", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <i className={`ti ${THUMBS[thumb]}`} style={{ fontSize:80, color:"#ccc" }} aria-hidden="true" />
-            </div>
+            <div style={{ height:280, background:"#f9f9f9", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+  <img 
+    src={`/images/${product.id ?? id}.jpg`} 
+    alt={product.name}
+    style={{ width:"100%", height:"100%", objectFit:"cover" }}
+    onError={e => { e.target.style.display="none"; }}
+  />
+</div>
             <div style={{ display:"flex", gap:8, padding:"12px 16px", borderTop:"0.5px solid #f0f0f0" }}>
               {THUMBS.map((icon,i) => (
                 <div key={i} onClick={() => setThumb(i)} style={{ width:48, height:48, borderRadius:8, background: thumb===i ? "#fff" : "#f5f5f5", border: thumb===i ? "1px solid #111" : "1px solid transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color: thumb===i ? "#555" : "#ccc" }}>
