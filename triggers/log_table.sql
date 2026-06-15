@@ -1,7 +1,18 @@
-CREATE TABLE Order_Status_Log (
-    log_id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id VARCHAR(50),
-    old_status VARCHAR(20),
-    new_status VARCHAR(20),
-    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+USE railway;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_order_status_log
+AFTER UPDATE ON Orders
+FOR EACH ROW
+BEGIN
+    IF OLD.order_status <> NEW.order_status THEN
+        INSERT INTO Order_Status_Log (
+            order_id, old_status, new_status
+        ) VALUES (
+            NEW.order_id, OLD.order_status, NEW.order_status
+        );
+    END IF;
+END$$
+
+DELIMITER ;
