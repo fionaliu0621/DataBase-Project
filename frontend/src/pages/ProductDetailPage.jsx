@@ -76,6 +76,7 @@ export default function ProductDetailPage() {
         setReviewTitle("");
         setReviewMessage("");
         setReviewScore(5);
+        setTimeout(() => window.location.reload(), 1000);
       } else {
         setReviewError(reviewJson.error ?? "送出失敗");
       }
