@@ -186,9 +186,7 @@ app.post('/orders', async (req, res) => {
 
         if (results && results[0] && results[0][0]) {
             const newOrderId = results[0][0].order_id;
-            if (req.body.shipping_address) {
-                await db.query("UPDATE Orders SET shipping_address = ? WHERE order_id = ?", [req.body.shipping_address, newOrderId]);
-            }
+          
             return res.json({ success: true, order_id: newOrderId });
         } else {
             return res.json({ success: true, message: "訂單建立成功！" });
