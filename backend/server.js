@@ -358,7 +358,18 @@ app.post('/reviews', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-const PORT = process.env.PORT || 3000;
+app.get('/geolocation/:zip', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT geolocation_city, geolocation_state FROM Geolocation WHERE geolocation_zip_code_prefix = ? LIMIT 1',
+            [req.params.zip]
+        );
+        if (rows.length === 0) return res.status(404).json({ error: '找不到此郵遞區號' });
+        res.json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 後端伺服器已在 http://localhost:${PORT} 啟動！`);
 });
