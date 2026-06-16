@@ -55,6 +55,7 @@ backend/
 ├── package.json             # 專案相依套件與啟動腳本清單 (NPM Scripts)
 └── server.js                # 伺服器總入口 (初始化 Middleware、監聽全網卡 Port)
 
+<img width="1536" height="894" alt="螢幕擷取畫面 2026-06-16 005205" src="https://github.com/user-attachments/assets/f820c718-9061-49df-b8da-ce27a7974914" />
 
 
 
