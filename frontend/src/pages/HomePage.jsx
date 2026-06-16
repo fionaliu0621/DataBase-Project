@@ -406,11 +406,12 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-        <div style={s.heroVisual}>
-          <i
-            className="ti ti-photo"
-            style={{ fontSize: 40 }}
-            aria-hidden="true"
+        <div style={{ ...s.heroVisual, overflow: "hidden", padding: 0 }}>
+          <img
+            src="/images/hero.jpg"
+            alt="hero"
+            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 16 }}
+            onError={e => { e.target.style.display = "none"; }}
           />
         </div>
       </div>
