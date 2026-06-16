@@ -55,6 +55,21 @@ backend/
 ├── package.json             # 專案相依套件與啟動腳本清單 (NPM Scripts)
 └── server.js                # 伺服器總入口 (初始化 Middleware、監聽全網卡 Port)
 
+
+## 三、 雲端部署
+Railway
+public internet
+├── 瀏覽網頁
+│   └── 前端server
+├── 發送 API 請求            # 
+│   └── 後端server   #    - 處理訂單任務 (Stored Procedure)
+│       └──---資料庫
+
+* 前端server domain: delightful-fascination-production-82e0.up.railway.app
+* 後端server domain: database-project-production-aefc.up.railway.app 
+
+
+
 <img width="1536" height="894" alt="螢幕擷取畫面 2026-06-16 005205" src="https://github.com/user-attachments/assets/f820c718-9061-49df-b8da-ce27a7974914" />
 
 
