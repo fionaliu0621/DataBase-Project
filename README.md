@@ -66,8 +66,8 @@ public internet
     └── 後端server   #    - 處理訂單任務 (Stored Procedure)
         └──---資料庫
 ```
-* 前端server domain: delightful-fascination-production-82e0.up.railway.app
-* 後端server domain: database-project-production-aefc.up.railway.app 
+* 前端server domain:  https://delightful-fascination-production-82e0.up.railway.app
+* 後端server domain:  https://database-project-production-aefc.up.railway.app 
 
 
 
