@@ -122,6 +122,7 @@ export default function ProductDetailPage() {
           {/* Product image */}
           <div style={{ background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", overflow:"hidden" }}>
             <div style={{ height:320, background:"#f9f9f9", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <div style={{ fontSize:10, color:"red" }}>{`/images/${id}.jpg`}</div>
               <img
                 src={`/images/${id}.jpg`}
                 alt={product.name}
