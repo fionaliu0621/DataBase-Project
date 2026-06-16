@@ -62,9 +62,9 @@ Railway
 public internet
 ├── 瀏覽網頁
 │   └── 前端server
-├── 發送 API 請求            # 
-│   └── 後端server   #    - 處理訂單任務 (Stored Procedure)
-│       └──---資料庫
+└── 發送 API 請求            # 
+    └── 後端server   #    - 處理訂單任務 (Stored Procedure)
+        └──---資料庫
 ```
 * 前端server domain: delightful-fascination-production-82e0.up.railway.app
 * 後端server domain: database-project-production-aefc.up.railway.app 
