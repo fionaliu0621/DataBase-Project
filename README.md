@@ -3,6 +3,7 @@
 本專案為一個前後端分離的現代化電商後端系統，涵蓋了從**虛擬資料流生成**、**資料庫實體關係建模（ERD）**、**MVC 分層架構開發**，到最終**雲端容器化生產環境部署**的完整工程實作。
 
 ---
+<img width="1631" height="900" alt="Report2_Team11" src="https://github.com/user-attachments/assets/e267909d-5168-4d9a-a9ca-a2375094e940" />
 
 ## 一、 資料工程與初始化 (Data Engineering)
 
