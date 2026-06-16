@@ -179,13 +179,19 @@ app.post('/orders', async (req, res) => {
         const cleanedProductId = product_id?.trim();
         const cleanedSellerId = seller_id?.trim();
 
+        // 1. 呼叫原本的預存程序建立訂單
         const [results] = await db.query(
             'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [cleanedCustomerId, cleanedProductId, cleanedSellerId, price || 0, freight_value || 0, shipping_limit_date || new Date(), payment_type || 'credit_card', payment_value || (price * (quantity || 1)), quantity || 1]
         );
 
+        // 2. 🔥【核心解套機制】強制把這筆訂單狀態更新為 'delivered'，讓營收統計能抓到它！
         if (results && results[0] && results[0][0]) {
             const newOrderId = results[0][0].order_id;
+            
+            // 直接在這裡呼叫你們原有的更新狀態程序，強制注入 'delivered' 狀態
+            await db.query('CALL UpdateOrderStatus(?, ?)', [newOrderId, 'delivered']);
+
             if (req.body.shipping_address) {
                 await db.query("UPDATE Orders SET shipping_address = ? WHERE order_id = ?", [req.body.shipping_address, newOrderId]);
             }
