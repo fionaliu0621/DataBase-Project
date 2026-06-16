@@ -17,20 +17,12 @@ app.use("/api/auth", authRoutes);
 // Products
 app.get('/products', async (req, res) => {
     try {
-        const { category, search } = req.query;
+        const { category } = req.query;
         let query = 'SELECT * FROM Products';
         let params = [];
-        let conditions = [];
         if (category) {
-            conditions.push('product_category_name = ?');
+            query += ' WHERE product_category_name = ?';
             params.push(category);
-        }
-        if (search) {
-            conditions.push('product_name LIKE ?');
-            params.push(`%${search}%`);
-        }
-        if (conditions.length > 0) {
-            query += ' WHERE ' + conditions.join(' AND ');
         }
         const [rows] = await db.query(query, params);
         const products = rows.map(p => ({ ...p, image: `/images/${p.product_id}.jpg` }));
@@ -194,6 +186,7 @@ app.post('/orders', async (req, res) => {
 
         if (results && results[0] && results[0][0]) {
             const newOrderId = results[0][0].order_id;
+          
             return res.json({ success: true, order_id: newOrderId });
         } else {
             return res.json({ success: true, message: "訂單建立成功！" });
