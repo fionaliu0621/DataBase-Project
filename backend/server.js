@@ -31,6 +31,7 @@ app.get('/products', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 app.get('/products/:id/order', async (req, res) => {
     try {
         const [rows] = await db.query(
@@ -126,7 +127,6 @@ app.get('/sellers', async (req, res) => {
     }
 });
 
-// 🛠️ 賣家基本資料路由（專職返回基本資料，不與營收撞車）
 app.get('/sellers/:id', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM Sellers WHERE seller_id = ?', [req.params.id]);
@@ -137,76 +137,38 @@ app.get('/sellers/:id', async (req, res) => {
     }
 });
 
-// 🛠️ 賣家營收路由 (GetSellerRevenue SP) - 獨立路徑並整合 localhost 解構邏輯
 app.get('/revenue/:id', async (req, res) => {
     try {
         const sellerId = req.params.id;
-        console.log(`[Railway] 正在查詢賣家營收 - 賣家 ID: ${sellerId}`);
-
         const [results] = await db.query('CALL GetSellerRevenue(?)', [sellerId]);
-        
-        // 🎯 使用你在 localhost 成功撈出資料的精準雙層陣列解構法
         const data = results[0][0];
-
-        if (!data) {
-            console.log(`[Railway] 提示：賣家 ${sellerId} 在資料庫中查無營收列`);
-            return res.json({ success: true, data: null });
-        }
-
-        console.log("[Railway] 資料庫吐出的原始欄位物件為:", JSON.stringify(data));
-
+        if (!data) return res.json({ success: true, data: null });
         const values = Object.values(data);
-
-        // 🛠️ 將欄位翻譯對齊前端需要的 4 個英文名字，相容大/小寫或有無底線
         const alignedData = {
-            total_orders: data.total_orders ?? data.total_orders_qty ?? data.order_count ?? data.orders ?? data.TotalOrders ?? values[0] ?? 0,
-            total_price: data.total_price ?? data.total_sales ?? data.sales_amount ?? data.price_sum ?? data.TotalPrice ?? values[1] ?? 0,
-            total_freight: data.total_freight ?? data.freight_sum ?? data.freight ?? data.TotalFreight ?? values[2] ?? 0,
-            total_revenue: data.total_revenue ?? data.total_amount ?? data.revenue ?? data.TotalRevenue ?? values[3] ?? 0
+            total_orders: data.total_orders ?? values[0] ?? 0,
+            total_price: data.total_price ?? values[1] ?? 0,
+            total_freight: data.total_freight ?? values[2] ?? 0,
+            total_revenue: data.total_revenue ?? values[3] ?? 0
         };
-
-        console.log("[Railway] 轉換完成並發送給前端的資料結構:", JSON.stringify(alignedData));
-
-        return res.json({ 
-            success: true, 
-            data: alignedData 
-        });
-
+        return res.json({ success: true, data: alignedData });
     } catch (error) {
-        console.error("❌ 查詢賣家營收失敗:", error.message);
         return res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Orders - 新增訂單（完全動態查詢賣家版，不寫死）
+// Orders
 app.post('/orders', async (req, res) => {
     try {
-        let { 
-            customer_id, 
-            product_id, 
-            seller_id, 
-            price,
-            freight_value, 
-            shipping_limit_date,
-            payment_type, 
-            payment_value, 
-            quantity 
-        } = req.body;
+        let { customer_id, product_id, seller_id, price, freight_value, shipping_limit_date, payment_type, payment_value, quantity } = req.body;
 
         if (!seller_id) {
-            console.log(`🔍 正在動態為商品 ID: ${product_id} 尋找對應的賣家...`);
-            const [itemRows] = await db.query(
-                'SELECT seller_id FROM Order_Items WHERE product_id = ? LIMIT 1', 
-                [product_id]
-            );
-            
+            const [itemRows] = await db.query('SELECT seller_id FROM Order_Items WHERE product_id = ? LIMIT 1', [product_id]);
             if (itemRows.length > 0 && itemRows[0].seller_id) {
                 seller_id = itemRows[0].seller_id;
             } else {
                 const [backupSeller] = await db.query('SELECT seller_id FROM Sellers LIMIT 1');
                 if (backupSeller.length > 0) {
                     seller_id = backupSeller[0].seller_id;
-                    console.log(`⚠️ 該商品為全新商品，動態分派至系統註冊賣家: ${seller_id}`);
                 } else {
                     throw new Error("資料庫中目前沒有任何賣家存在，無法建立訂單！");
                 }
@@ -219,27 +181,20 @@ app.post('/orders', async (req, res) => {
 
         const [results] = await db.query(
             'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [
-                cleanedCustomerId, 
-                cleanedProductId, 
-                cleanedSellerId, 
-                price || 0, 
-                freight_value || 0, 
-                shipping_limit_date || new Date(), 
-                payment_type || 'credit_card', 
-                payment_value || (price * (quantity || 1)), 
-                quantity || 1
-            ]
+            [cleanedCustomerId, cleanedProductId, cleanedSellerId, price || 0, freight_value || 0, shipping_limit_date || new Date(), payment_type || 'credit_card', payment_value || (price * (quantity || 1)), quantity || 1]
         );
 
         if (results && results[0] && results[0][0]) {
-            return res.json({ success: true, order_id: results[0][0].order_id });
+            const newOrderId = results[0][0].order_id;
+            if (req.body.shipping_address) {
+                await db.query("UPDATE Orders SET shipping_address = ? WHERE order_id = ?", [req.body.shipping_address, newOrderId]);
+            }
+            return res.json({ success: true, order_id: newOrderId });
         } else {
-            return res.json({ success: true, message: "訂單動態建立成功！" });
+            return res.json({ success: true, message: "訂單建立成功！" });
         }
-
     } catch (error) {
-        console.error("❌ 建立訂單失敗，詳細錯誤:", error);
+        console.error("❌ 建立訂單失敗：", error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -253,40 +208,21 @@ app.get('/orders', async (req, res) => {
     }
 });
 
-// ✨【終極相容路由】同時支持 POST 與 PATCH，完美阻斷 404/405 彈窗錯誤！
 const handleStatusUpdate = async (req, res) => {
     try {
         const { new_status } = req.body;
         const orderId = req.params.id;
-
-        console.log(`[Railway] 收到取消請求(${req.method}) - 訂單 ID: ${orderId}, 狀態: ${new_status}`);
-
-        const [results] = await db.query(
-            'CALL UpdateOrderStatus(?, ?)',
-            [orderId, new_status]
-        );
-
+        const [results] = await db.query('CALL UpdateOrderStatus(?, ?)', [orderId, new_status]);
         let finalResult = 'success';
         if (Array.isArray(results) && results.length > 0 && Array.isArray(results[0]) && results[0].length > 0) {
             finalResult = results[0][0].result || results[0][0].status || 'success';
         }
-
-        return res.json({ 
-            success: true, 
-            result: finalResult,
-            message: "訂單狀態更新成功" 
-        });
-
+        return res.json({ success: true, result: finalResult, message: "訂單狀態更新成功" });
     } catch (error) {
-        console.error("❌ Railway 後端更新失敗:", error.message);
-        return res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
+        return res.status(500).json({ success: false, error: error.message });
     }
 };
 
-// 雙路由綁定，管他前端是用 POST 還是 PATCH 戳，全部都能成功返回
 app.post('/orders/:id/status', handleStatusUpdate);
 app.patch('/orders/:id/status', handleStatusUpdate);
 
@@ -316,23 +252,11 @@ app.get('/customers/:id/orders', async (req, res) => {
         const ordersMap = {};
         for (const row of rows) {
             if (!ordersMap[row.order_id]) {
-                ordersMap[row.order_id] = {
-                    order_id: row.order_id,
-                    status: row.order_status,
-                    date: row.order_purchase_timestamp,
-                    items: [],
-                    total: 0
-                };
+                ordersMap[row.order_id] = { order_id: row.order_id, status: row.order_status, date: row.order_purchase_timestamp, items: [], total: 0 };
             }
             if (row.product_id) {
-                const itemTotal = Number(row.price) * Number(row.order_item_quantity);
-                ordersMap[row.order_id].items.push({
-                    product_id: row.product_id,
-                    product_name: row.product_name,
-                    price: row.price,
-                    qty: row.order_item_quantity
-                });
-                ordersMap[row.order_id].total += itemTotal;
+                ordersMap[row.order_id].items.push({ product_id: row.product_id, product_name: row.product_name, price: row.price, qty: row.order_item_quantity });
+                ordersMap[row.order_id].total += Number(row.price) * Number(row.order_item_quantity);
             }
         }
         res.json(Object.values(ordersMap));
@@ -341,13 +265,10 @@ app.get('/customers/:id/orders', async (req, res) => {
     }
 });
 
-
-// 新增評論
 app.post('/reviews', async (req, res) => {
     try {
         const { order_id, review_score, review_comment_title, review_comment_message } = req.body;
         const review_id = `rev_${Date.now()}`;
-        // 先刪掉舊的評論再插入新的
         await db.query('DELETE FROM Order_Reviews WHERE order_id = ?', [order_id]);
         await db.query(
             'INSERT INTO Order_Reviews (review_id, order_id, review_score, review_comment_title, review_comment_message, review_creation_date) VALUES (?, ?, ?, ?, ?, NOW())',
@@ -358,6 +279,7 @@ app.post('/reviews', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 app.get('/geolocation/:zip', async (req, res) => {
     try {
         const [rows] = await db.query(
@@ -370,6 +292,8 @@ app.get('/geolocation/:zip', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 後端伺服器已在 http://localhost:${PORT} 啟動！`);
 });
