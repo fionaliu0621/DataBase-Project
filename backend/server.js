@@ -347,13 +347,10 @@ app.post('/reviews', async (req, res) => {
     try {
         const { order_id, review_score, review_comment_title, review_comment_message } = req.body;
         const review_id = `rev_${Date.now()}`;
+        // 先刪掉舊的評論再插入新的
+        await db.query('DELETE FROM Order_Reviews WHERE order_id = ?', [order_id]);
         await db.query(
-            `INSERT INTO Order_Reviews (review_id, order_id, review_score, review_comment_title, review_comment_message, review_creation_date) 
-             VALUES (?, ?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE 
-             review_score = VALUES(review_score),
-             review_comment_title = VALUES(review_comment_title),
-             review_comment_message = VALUES(review_comment_message)`,
+            'INSERT INTO Order_Reviews (review_id, order_id, review_score, review_comment_title, review_comment_message, review_creation_date) VALUES (?, ?, ?, ?, ?, NOW())',
             [review_id, order_id, review_score, review_comment_title, review_comment_message]
         );
         res.json({ success: true });
@@ -361,7 +358,6 @@ app.post('/reviews', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 後端伺服器已在 http://localhost:${PORT} 啟動！`);
