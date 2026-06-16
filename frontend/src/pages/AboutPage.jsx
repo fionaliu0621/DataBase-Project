@@ -8,10 +8,10 @@ const VALUES = [
   { icon:"ti-leaf",         title:"Sustainable choices", desc:"We highlight eco-friendly products and responsible sellers." },
 ];
 const TEAM = [
-  { initials:"CW", name:"Chen Wei",    role:"Co-founder & CEO" },
-  { initials:"LM", name:"Lin Mei",     role:"Head of Product"  },
-  { initials:"WJ", name:"Wang Jia",    role:"Lead Engineer"    },
-  { initials:"YH", name:"Yang Hui",    role:"Head of Design"   },
+  { initials:"CW", name:"Ching-Ting Chiu",    role:"Co-founder & CEO" },
+  { initials:"LM", name:"Ting-An Hung",     role:"Head of Product"  },
+  { initials:"WJ", name:"Ge-Fei Liu",    role:"Lead Engineer"    },
+  { initials:"YH", name:"Yu-Hsuan Hsieh",    role:"Head of Design"   },
 ];
 
 export default function AboutPage() {
