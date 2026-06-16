@@ -6,7 +6,7 @@ require('dotenv').config();
 const app = express();
 
 app.use(cors({
-    origin: '*'
+  origin: '*'
 }));
 app.use(express.json());
 
@@ -64,12 +64,12 @@ app.get('/products/:id', async (req, res) => {
             }
         }
         const [reviews] = await db.query(`
-SELECT r.review_score, r.review_comment_title, r.review_comment_message, r.review_creation_date
-FROM Order_Reviews r
-JOIN Orders o ON r.order_id = o.order_id
-JOIN Order_Items oi ON o.order_id = oi.order_id
-WHERE oi.product_id = ?
-LIMIT 5
+            SELECT r.review_score, r.review_comment_title, r.review_comment_message, r.review_creation_date
+            FROM Order_Reviews r
+            JOIN Orders o ON r.order_id = o.order_id
+            JOIN Order_Items oi ON o.order_id = oi.order_id
+            WHERE oi.product_id = ?
+            LIMIT 5
         `, [req.params.id]);
         res.json({
             id: p.product_id,
@@ -102,14 +102,14 @@ LIMIT 5
 app.get('/sellers', async (req, res) => {
     try {
         const [rows] = await db.query(`
-SELECT s.seller_id, s.seller_city,
-COUNT(DISTINCT oi.order_id) AS sold,
-AVG(r.review_score) AS rating
-FROM Sellers s
-LEFT JOIN Order_Items oi ON s.seller_id = oi.seller_id
-LEFT JOIN Orders o ON oi.order_id = o.order_id
-LEFT JOIN Order_Reviews r ON o.order_id = r.order_id
-GROUP BY s.seller_id, s.seller_city
+            SELECT s.seller_id, s.seller_city,
+                COUNT(DISTINCT oi.order_id) AS sold,
+                AVG(r.review_score) AS rating
+            FROM Sellers s
+            LEFT JOIN Order_Items oi ON s.seller_id = oi.seller_id
+            LEFT JOIN Orders o ON oi.order_id = o.order_id
+            LEFT JOIN Order_Reviews r ON o.order_id = r.order_id
+            GROUP BY s.seller_id, s.seller_city
         `);
         const sellers = rows.map(s => ({
             id: s.seller_id,
@@ -179,7 +179,6 @@ app.post('/orders', async (req, res) => {
         const cleanedProductId = product_id?.trim();
         const cleanedSellerId = seller_id?.trim();
 
-        // 1. 建立初始訂單
         const [results] = await db.query(
             'CALL AddOrder(?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [cleanedCustomerId, cleanedProductId, cleanedSellerId, price || 0, freight_value || 0, shipping_limit_date || new Date(), payment_type || 'credit_card', payment_value || (price * (quantity || 1)), quantity || 1]
@@ -187,10 +186,6 @@ app.post('/orders', async (req, res) => {
 
         if (results && results[0] && results[0][0]) {
             const newOrderId = results[0][0].order_id;
-            
-            // 🔥【關鍵同步】一網打盡！下單完立馬強制轉成 delivered 狀態，點燃你的營收視窗數字
-            await db.query('CALL UpdateOrderStatus(?, ?)', [newOrderId, 'delivered']);
-
             if (req.body.shipping_address) {
                 await db.query("UPDATE Orders SET shipping_address = ? WHERE order_id = ?", [req.body.shipping_address, newOrderId]);
             }
@@ -244,14 +239,14 @@ app.get('/payments', async (req, res) => {
 app.get('/customers/:id/orders', async (req, res) => {
     try {
         const [rows] = await db.query(`
-SELECT o.order_id, o.order_status, o.order_purchase_timestamp,
-oi.product_id, oi.price, oi.order_item_quantity,
-p.product_name, p.product_category_name
-FROM Orders o
-LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
-LEFT JOIN Products p ON oi.product_id = p.product_id
-WHERE o.customer_id = ?
-ORDER BY o.order_purchase_timestamp DESC
+            SELECT o.order_id, o.order_status, o.order_purchase_timestamp,
+                   oi.product_id, oi.price, oi.order_item_quantity,
+                   p.product_name, p.product_category_name
+            FROM Orders o
+            LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
+            LEFT JOIN Products p ON oi.product_id = p.product_id
+            WHERE o.customer_id = ?
+            ORDER BY o.order_purchase_timestamp DESC
         `, [req.params.id]);
 
         const ordersMap = {};
@@ -288,7 +283,7 @@ app.post('/reviews', async (req, res) => {
 app.get('/geolocation/:zip', async (req, res) => {
     try {
         const [rows] = await db.query(
-            'SELECT geolocation_city FROM Geolocation WHERE geolocation_zip_code_prefix = ? LIMIT 1',
+            'SELECT geolocation_city, geolocation_state FROM Geolocation WHERE geolocation_zip_code_prefix = ? LIMIT 1',
             [req.params.zip]
         );
         if (rows.length === 0) return res.status(404).json({ error: '找不到此郵遞區號' });
