@@ -196,6 +196,15 @@ export default function CartPage() {
                   <input
                     value={addr[key]}
                     onChange={e => setField(key, e.target.value)}
+                    onBlur={key === "postalCode" ? async () => {
+                      if (addr.postalCode.trim().length >= 3) {
+                        try {
+                          const res = await fetch(`${import.meta.env.VITE_API_URL}/geolocation/${addr.postalCode.trim()}`);
+                          const data = await res.json();
+                          if (data.geolocation_city) setField("city", data.geolocation_city);
+                        } catch {}
+                      }
+                    } : undefined}
                     style={addrErrors[key] ? inputError : inputBase}
                     placeholder=""
                   />
