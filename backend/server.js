@@ -327,6 +327,18 @@ app.post('/reviews', async (req, res) => {
     }
 });
 
+// Cities（給註冊頁城市下拉選單用）
+app.get('/cities', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT DISTINCT geolocation_city FROM Geolocation ORDER BY geolocation_city ASC'
+        );
+        res.json(rows.map(r => r.geolocation_city));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/geolocation/:zip', async (req, res) => {
     try {
         const [rows] = await db.query(
