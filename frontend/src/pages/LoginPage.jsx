@@ -1,6 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+
+const BASE_URL = "https://database-project-production-aefc.up.railway.app";
 
 const inputLight = {
   width: "100%", height: 38, padding: "0 14px",
@@ -8,9 +10,9 @@ const inputLight = {
   fontSize: 13, color: "#111", background: "#fafafa",
   outline: "none", fontFamily: "'Inter',sans-serif", boxSizing: "border-box"
 };
+
 const fieldLabel = { fontSize: 10, letterSpacing: "1px", color: "#555", marginBottom: 5 };
 
-// 角色切換鈕（Customer / Seller），樣式沿用既有 Sign in / Register tab 的風格
 function RoleSwitch({ role, setRole }) {
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: "1.5rem" }}>
@@ -33,24 +35,34 @@ function RoleSwitch({ role, setRole }) {
   );
 }
 
-// ── Register 表單（目前只支援買家自助註冊；賣家帳號預設由資料庫端建立）──
 function RegisterForm({ onSuccess }) {
   const [customerId, setCustomerId] = useState("");
   const [password,   setPassword]   = useState("");
+  const [city,       setCity]       = useState("");
+  const [cities,     setCities]     = useState([]);
   const [error,      setError]      = useState(null);
   const [loading,    setLoading]    = useState(false);
   const [done,       setDone]       = useState(null);
+
+  // 載入城市清單
+  useEffect(() => {
+    fetch(`${BASE_URL}/cities`)
+      .then(r => r.json())
+      .then(data => setCities(Array.isArray(data) ? data : []))
+      .catch(() => setCities([]));
+  }, []);
 
   const handleSubmit = async () => {
     setError(null);
     if (!customerId.trim()) { setError("請輸入 Customer ID"); return; }
     if (customerId.trim().length < 3) { setError("Customer ID 至少 3 個字元"); return; }
+    if (!city) { setError("請選擇所在城市"); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
+      const res = await fetch(`${BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: customerId.trim() })
+        body: JSON.stringify({ customerId: customerId.trim(), city })
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "註冊失敗"); return; }
@@ -66,7 +78,7 @@ function RegisterForm({ onSuccess }) {
   if (done) return (
     <div style={{ textAlign: "center", padding: "2rem 0" }}>
       <div style={{ fontSize: 32, marginBottom: 16 }}>✓</div>
-      <div style={{ fontSize: 16, fontWeight: 500, color: "#111", marginBottom: 8 }}>註冊成功！</div>
+      <div style={{ fontSize: 16, fontWeight: 500, color: "#111", marginBottom: 8 }}>註冊成功!</div>
       <div style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>你的 Customer ID 是</div>
       <div style={{ fontSize: 18, fontWeight: 600, color: "#111", background: "#f5f5f5", borderRadius: 8, padding: "10px 20px", display: "inline-block", letterSpacing: 1 }}>{done}</div>
       <div style={{ fontSize: 11, color: "#bbb", marginTop: 12 }}>請記下此 ID，下次登入時使用</div>
@@ -89,7 +101,7 @@ function RegisterForm({ onSuccess }) {
         />
       </div>
 
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 14 }}>
         <div style={fieldLabel}>PASSWORD</div>
         <input
           type="password"
@@ -98,6 +110,20 @@ function RegisterForm({ onSuccess }) {
           placeholder="••••••••"
           style={inputLight}
         />
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <div style={fieldLabel}>CITY</div>
+        <select
+          value={city}
+          onChange={e => setCity(e.target.value)}
+          style={{ ...inputLight, appearance: "none", cursor: "pointer" }}
+        >
+          <option value="">選擇所在城市...</option>
+          {cities.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
       </div>
 
       {error && <div style={{ fontSize: 11, color: "#e24b4a", marginBottom: "1rem", lineHeight: 1.6 }}>{error}</div>}
@@ -117,7 +143,6 @@ function RegisterForm({ onSuccess }) {
       >
         {loading ? "建立中..." : "Create account"}
       </button>
-
       <div style={{ fontSize: 10, color: "#bbb", textAlign: "center", lineHeight: 1.7, letterSpacing: "0.2px" }}>
         By registering you agree to our <span style={{ color: "#888", cursor: "pointer" }}>Terms</span> and <span style={{ color: "#888", cursor: "pointer" }}>Privacy Policy</span>.
       </div>
@@ -125,10 +150,9 @@ function RegisterForm({ onSuccess }) {
   );
 }
 
-// ── 主頁面 ────────────────────────────────────────────────
 export default function LoginPage() {
   const [tab, setTab] = useState("login");
-  const [role, setRole] = useState("customer"); // "customer" | "seller"
+  const [role, setRole] = useState("customer");
   const [userIdInput, setUserIdInput] = useState("");
   const [password,   setPassword]   = useState("");
   const [signInError, setSignInError] = useState(null);
@@ -147,8 +171,6 @@ export default function LoginPage() {
     }
     setSignInError(null);
     login({ user_id: userIdInput.trim(), role, name: userIdInput.trim() });
-
-    // 賣家登入完直接導去 Dashboard；買家維持原本「導回原本要去的頁面」邏輯
     if (role === "seller") {
       navigate("/seller/dashboard", { replace: true });
     } else {
@@ -159,7 +181,6 @@ export default function LoginPage() {
 
   return (
     <div style={{ fontFamily: "'Inter',sans-serif", display: "grid", gridTemplateColumns: "420px 1fr", minHeight: "100vh" }}>
-
       {/* 左側黑色區塊 */}
       <div style={{ background: "#111", padding: "3.5rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", textDecoration: "none", marginBottom: "3rem" }}>
@@ -188,8 +209,6 @@ export default function LoginPage() {
 
       {/* 右側表單區塊 */}
       <div style={{ background: "#fff", padding: "3rem 4rem", display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 480, width: "100%", margin: "0 auto" }}>
-
-        {/* Tab 切換：Sign in / Register */}
         <div style={{ display: "flex", borderBottom: "0.5px solid #e8e8e8", marginBottom: "2rem" }}>
           {[["login", "Sign in"], ["register", "Register"]].map(([t, l]) => (
             <button
@@ -207,14 +226,11 @@ export default function LoginPage() {
           ))}
         </div>
 
-        {/* Sign In */}
         {tab === "login" ? (
           <>
             <div style={{ fontSize: 20, fontWeight: 400, color: "#111", marginBottom: 4, letterSpacing: "-0.3px" }}>Welcome back</div>
             <div style={{ fontSize: 12, color: "#bbb", marginBottom: "1.5rem" }}>Sign in to your ShopHub account</div>
-
             <RoleSwitch role={role} setRole={r => { setRole(r); setUserIdInput(""); setSignInError(null); }} />
-
             <div style={{ marginBottom: 14 }}>
               <div style={fieldLabel}>{role === "customer" ? "CUSTOMER ID" : "SELLER ID"}</div>
               <input
@@ -237,18 +253,15 @@ export default function LoginPage() {
                 style={inputLight}
               />
             </div>
-
             {signInError && (
               <div style={{ fontSize: 11, color: "#e24b4a", marginBottom: "1rem", lineHeight: 1.6 }}>{signInError}</div>
             )}
-
             <button
               onClick={handleSignIn}
               style={{ width: "100%", padding: 12, background: "#111", color: "#fff", border: "none", borderRadius: 99, fontSize: 13, fontWeight: 500, cursor: "pointer", letterSpacing: "0.3px", fontFamily: "'Inter',sans-serif" }}
             >
               Sign in
             </button>
-
             {role === "customer" && (
               <div style={{ fontSize: 11, color: "#bbb", marginTop: 16, textAlign: "center" }}>
                 還沒有帳號？
