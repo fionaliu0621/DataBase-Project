@@ -23,7 +23,7 @@ const CUSTOMER_LINKS = [
 
 // 賣家看到的選單：三個分頁，分別對應不同網址路由
 const SELLER_LINKS = [
-  { label:"Dashboard",   to:"/seller/dashboard" },
+  { label:"Overview",   to:"/seller/dashboard" },
   { label:"My Products", to:"/seller/products"  },
   { label:"Orders",      to:"/seller/orders"    },
 ];
