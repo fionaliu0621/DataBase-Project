@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 
@@ -24,44 +24,56 @@ export default function SellerDashboardPage() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState(null);
 
-  const fetchRevenue = async () => {
-    setRevenueLoading(true);
-    setRevenueError(null);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/revenue/${sellerId}`);
-      const json = await res.json();
-      if (json.success) {
-        setRevenue(json.data);
-      } else {
-        setRevenueError(json.error || "查詢營收失敗");
+  useEffect(() => {
+    if (!sellerId) return;
+
+    const fetchRevenue = async () => {
+      setRevenueLoading(true);
+      setRevenueError(null);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/revenue/${sellerId}`);
+        const json = await res.json();
+        if (json.success) {
+          setRevenue(json.data);
+        } else {
+          setRevenueError(json.error || "查詢營收失敗");
+        }
+      } catch (err) {
+        setRevenueError(err.message);
+      } finally {
+        setRevenueLoading(false);
       }
-    } catch (err) {
-      setRevenueError(err.message);
-    } finally {
-      setRevenueLoading(false);
-    }
-  };
+    };
 
-  const fetchOrders = async () => {
-    setOrdersLoading(true);
-    setOrdersError(null);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/sellers/${sellerId}/orders`);
-      if (!res.ok) throw new Error(`伺服器回應錯誤 (${res.status})`);
-      const json = await res.json();
-      setOrders(Array.isArray(json) ? json : []);
-    } catch (err) {
-      setOrdersError(err.message);
-    } finally {
-      setOrdersLoading(false);
-    }
-  };
+    const fetchOrders = async () => {
+      setOrdersLoading(true);
+      setOrdersError(null);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/sellers/${sellerId}/orders`);
+        if (!res.ok) throw new Error(`伺服器回應錯誤 (${res.status})`);
+        const json = await res.json();
+        setOrders(Array.isArray(json) ? json : []);
+      } catch (err) {
+        setOrdersError(err.message);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
 
-  useState(() => {
     fetchRevenue();
     fetchOrders();
-    // eslint-disable-next-line
-  }, []);
+  }, [sellerId]);
+
+  if (!sellerId) {
+    return (
+      <div style={{ fontFamily:"'Inter',sans-serif", background:"#fafafa", minHeight:"100vh" }}>
+        <Navbar />
+        <div style={{ padding:"3rem", textAlign:"center", color:"#e24b4a", fontSize:13 }}>
+          無法取得 Seller ID，請重新登入。
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ fontFamily:"'Inter',sans-serif", background:"#fafafa", minHeight:"100vh" }}>
@@ -110,10 +122,10 @@ export default function SellerDashboardPage() {
           {!ordersLoading && !ordersError && orders.map((o, i) => {
             const st = STATUS[o.order_status] ?? STATUS.created;
             return (
-              <div key={o.order_id} style={{ padding:"14px 20px", borderBottom: i < orders.length-1 ? "0.5px solid #f5f5f5" : "none", display:"flex", alignItems:"center", gap:14 }}>
+              <div key={`${o.order_id}-${i}`} style={{ padding:"14px 20px", borderBottom: i < orders.length-1 ? "0.5px solid #f5f5f5" : "none", display:"flex", alignItems:"center", gap:14 }}>
                 <span style={{ fontSize:11, fontFamily:"monospace", color:"#bbb", flexShrink:0 }}>#{o.order_id}</span>
                 <span style={{ fontSize:10, padding:"3px 10px", borderRadius:99, fontWeight:500, letterSpacing:"0.3px", background:st.bg, color:st.color, flexShrink:0 }}>{st.label}</span>
-                <span style={{ fontSize:12, color:"#888", flex:1 }}>{o.product_name}</span>
+                <span style={{ fontSize:12, color:"#888", flex:1 }}>{o.product_name ?? "—"}</span>
                 <span style={{ fontSize:11, color:"#bbb" }}>×{o.order_item_quantity}</span>
                 <span style={{ fontSize:13, fontWeight:500 }}>NT${Number(o.price).toLocaleString()}</span>
               </div>
