@@ -14,16 +14,18 @@ const S = {
   sep: { width:32, height:"0.5px", background:"#e0e0e0", margin:"0 10px" },
 };
 
-// 買家看到的選單（原本就有的）
+// 買家看到的選單
 const CUSTOMER_LINKS = [
   { label:"Products",    to:"/"            },
   { label:"Sellers",     to:"/sellers"     },
   { label:"About",       to:"/about"       },
 ];
 
-// 賣家看到的選單：只有自己的後台，不顯示 Products/Sellers/About 這些買家導覽
+// 賣家看到的選單：三個分頁，分別對應不同網址路由
 const SELLER_LINKS = [
   { label:"Dashboard",   to:"/seller/dashboard" },
+  { label:"My Products", to:"/seller/products"  },
+  { label:"Orders",      to:"/seller/orders"    },
 ];
 
 export default function Navbar({ cartCount=0, breadcrumb=null, steps=null, activeStep=null }) {
