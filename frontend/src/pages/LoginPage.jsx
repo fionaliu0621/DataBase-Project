@@ -10,7 +10,30 @@ const inputLight = {
 };
 const fieldLabel = { fontSize: 10, letterSpacing: "1px", color: "#555", marginBottom: 5 };
 
-// ── Register 表單 ──────────────────────────────────────────
+// 角色切換鈕（Customer / Seller），樣式沿用既有 Sign in / Register tab 的風格
+function RoleSwitch({ role, setRole }) {
+  return (
+    <div style={{ display: "flex", gap: 8, marginBottom: "1.5rem" }}>
+      {[["customer", "我是買家"], ["seller", "我是賣家"]].map(([r, label]) => (
+        <button
+          key={r}
+          onClick={() => setRole(r)}
+          style={{
+            flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 12,
+            cursor: "pointer", fontFamily: "'Inter',sans-serif",
+            border: role === r ? "1px solid #111" : "0.5px solid #e8e8e8",
+            background: role === r ? "#111" : "#fff",
+            color: role === r ? "#fff" : "#666",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Register 表單（目前只支援買家自助註冊；賣家帳號預設由資料庫端建立）──
 function RegisterForm({ onSuccess }) {
   const [customerId, setCustomerId] = useState("");
   const [password,   setPassword]   = useState("");
@@ -105,7 +128,8 @@ function RegisterForm({ onSuccess }) {
 // ── 主頁面 ────────────────────────────────────────────────
 export default function LoginPage() {
   const [tab, setTab] = useState("login");
-  const [customerId, setCustomerId] = useState("");
+  const [role, setRole] = useState("customer"); // "customer" | "seller"
+  const [userIdInput, setUserIdInput] = useState("");
   const [password,   setPassword]   = useState("");
   const [signInError, setSignInError] = useState(null);
   const location = useLocation();
@@ -113,14 +137,24 @@ export default function LoginPage() {
   const { login } = useAuth();
 
   const handleSignIn = () => {
-    if (!customerId.trim()) {
-      setSignInError("請輸入 Customer ID（例如 cust_000016）");
+    if (!userIdInput.trim()) {
+      setSignInError(
+        role === "customer"
+          ? "請輸入 Customer ID（例如 cust_000016）"
+          : "請輸入 Seller ID（例如 sell_0090）"
+      );
       return;
     }
     setSignInError(null);
-    login({ customer_id: customerId.trim(), name: customerId.trim(), email: customerId.trim() });
-    const redirectTo = location.state?.from?.pathname || "/";
-    navigate(redirectTo, { replace: true });
+    login({ user_id: userIdInput.trim(), role, name: userIdInput.trim() });
+
+    // 賣家登入完直接導去 Dashboard；買家維持原本「導回原本要去的頁面」邏輯
+    if (role === "seller") {
+      navigate("/seller/dashboard", { replace: true });
+    } else {
+      const redirectTo = location.state?.from?.pathname || "/";
+      navigate(redirectTo, { replace: true });
+    }
   };
 
   return (
@@ -155,7 +189,7 @@ export default function LoginPage() {
       {/* 右側表單區塊 */}
       <div style={{ background: "#fff", padding: "3rem 4rem", display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 480, width: "100%", margin: "0 auto" }}>
 
-        {/* Tab 切換 */}
+        {/* Tab 切換：Sign in / Register */}
         <div style={{ display: "flex", borderBottom: "0.5px solid #e8e8e8", marginBottom: "2rem" }}>
           {[["login", "Sign in"], ["register", "Register"]].map(([t, l]) => (
             <button
@@ -177,15 +211,17 @@ export default function LoginPage() {
         {tab === "login" ? (
           <>
             <div style={{ fontSize: 20, fontWeight: 400, color: "#111", marginBottom: 4, letterSpacing: "-0.3px" }}>Welcome back</div>
-            <div style={{ fontSize: 12, color: "#bbb", marginBottom: "1.75rem" }}>Sign in to your ShopHub account</div>
+            <div style={{ fontSize: 12, color: "#bbb", marginBottom: "1.5rem" }}>Sign in to your ShopHub account</div>
+
+            <RoleSwitch role={role} setRole={r => { setRole(r); setUserIdInput(""); setSignInError(null); }} />
 
             <div style={{ marginBottom: 14 }}>
-              <div style={fieldLabel}>CUSTOMER ID</div>
+              <div style={fieldLabel}>{role === "customer" ? "CUSTOMER ID" : "SELLER ID"}</div>
               <input
                 type="text"
-                placeholder="e.g. cust_000016"
-                value={customerId}
-                onChange={e => setCustomerId(e.target.value)}
+                placeholder={role === "customer" ? "e.g. cust_000016" : "e.g. sell_0090"}
+                value={userIdInput}
+                onChange={e => setUserIdInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleSignIn()}
                 style={inputLight}
               />
@@ -213,14 +249,16 @@ export default function LoginPage() {
               Sign in
             </button>
 
-            <div style={{ fontSize: 11, color: "#bbb", marginTop: 16, textAlign: "center" }}>
-              還沒有帳號？
-              <span onClick={() => setTab("register")} style={{ color: "#111", cursor: "pointer", marginLeft: 4 }}>立即註冊</span>
-            </div>
+            {role === "customer" && (
+              <div style={{ fontSize: 11, color: "#bbb", marginTop: 16, textAlign: "center" }}>
+                還沒有帳號？
+                <span onClick={() => setTab("register")} style={{ color: "#111", cursor: "pointer", marginLeft: 4 }}>立即註冊</span>
+              </div>
+            )}
           </>
         ) : (
           <RegisterForm onSuccess={(customer_id, name) => {
-            login({ customer_id, name, email: customer_id });
+            login({ user_id: customer_id, role: "customer", name });
             navigate(location.state?.from?.pathname || "/", { replace: true });
           }} />
         )}
