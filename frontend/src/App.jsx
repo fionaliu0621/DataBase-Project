@@ -8,6 +8,7 @@ import ReviewPage            from "./pages/ReviewPage";
 import LoginPage             from "./pages/LoginPage";
 import SellersPage           from "./pages/SellersPage";
 import AboutPage             from "./pages/AboutPage";
+import SellerDashboardPage   from "./pages/SellerDashboardPage"; // 新增
 import RequireAuth           from "./components/RequireAuth";
 
 export default function App() {
@@ -23,6 +24,8 @@ export default function App() {
         <Route path="/login"              element={<LoginPage />} />
         <Route path="/sellers"            element={<SellersPage />} />
         <Route path="/about"              element={<AboutPage />} />
+        {/* 新增：賣家專屬，role="seller" 才能進，否則 RequireAuth 會導回首頁 */}
+        <Route path="/seller/dashboard"   element={<RequireAuth role="seller"><SellerDashboardPage /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   );
