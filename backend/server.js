@@ -63,20 +63,30 @@ app.get('/products/:id', async (req, res) => {
                 };
             }
         }
+
+        // 評論：先抓出全部評論（不限制筆數），用來算正確的平均星等跟總數，
+        // 畫面上實際顯示的列表再另外只取前 5 筆，避免頁面被拉得太長。
         const [reviews] = await db.query(`
             SELECT r.review_score, r.review_comment_title, r.review_comment_message, r.review_creation_date
             FROM Order_Reviews r
             JOIN Orders o ON r.order_id = o.order_id
             JOIN Order_Items oi ON o.order_id = oi.order_id
             WHERE oi.product_id = ?
-            LIMIT 5
         `, [req.params.id]);
+
+        const reviewCount = reviews.length;
+        const avgRating = reviewCount > 0
+            ? (reviews.reduce((sum, r) => sum + Number(r.review_score), 0) / reviewCount).toFixed(1)
+            : null;
+
         res.json({
             id: p.product_id,
             name: p.product_name,
             category: p.product_category_name,
             price: p.product_price,
             stock: p.product_available,
+            rating: avgRating,
+            review_count: reviewCount,
             specs: [
                 ['Weight', `${p.product_weight_g}g`],
                 ['Length', `${p.product_length_cm}cm`],
@@ -85,7 +95,7 @@ app.get('/products/:id', async (req, res) => {
                 ['Photos', p.product_photos_qty],
             ],
             seller,
-            reviews: reviews.map(r => ({
+            reviews: reviews.slice(0, 5).map(r => ({
                 name: 'Customer',
                 initials: 'CU',
                 stars: r.review_score,
