@@ -90,7 +90,11 @@ export default function SellerProductsPage() {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/sellers/${sellerId}/products`);
         if (!res.ok) throw new Error(`伺服器回應錯誤 (${res.status})`);
         const json = await res.json();
-        setProducts(Array.isArray(json) ? json : []);
+        const filtered = (Array.isArray(json) ? json : []).filter(p => {
+          const num = parseInt(String(p.product_id).replace("prod_", ""), 10);
+          return num >= 1 && num <= 48;
+        });
+setProducts(filtered);
       } catch (err) {
         setError(err.message);
       } finally {
