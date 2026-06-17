@@ -165,7 +165,7 @@ export default function SellerDashboardPage() {
 
       <div style={{ padding:"2.5rem", maxWidth:900, margin:"0 auto" }}>
 
-        <div style={{ fontSize:11, letterSpacing:"2px", color:"#bbb", marginBottom:8 }}>SELLER DASHBOARD</div>
+        <div style={{ fontSize:11, letterSpacing:"2px", color:"#bbb", marginBottom:8 }}>SELLER OVERVIEW</div>
         <h1 style={{ fontSize:24, fontWeight:300, color:"#111", letterSpacing:"-0.5px", marginBottom:"2rem" }}>
           {sellerId}
         </h1>
