@@ -206,6 +206,35 @@ app.get('/revenue/:id', async (req, res) => {
     }
 });
 
+// 賣家在所有賣家中的營收排名（只回傳排名跟總賣家數，不洩漏其他賣家的具體金額/身份）
+app.get('/sellers/:id/rank', async (req, res) => {
+    try {
+        const sellerId = req.params.id;
+        const [rows] = await db.query(`
+            SELECT
+                s.seller_id,
+                SUM(oi.price * oi.order_item_quantity + oi.freight_value) AS total_revenue
+            FROM Sellers s
+            JOIN Order_Items oi ON s.seller_id COLLATE utf8mb4_unicode_ci = oi.seller_id COLLATE utf8mb4_unicode_ci
+            JOIN Orders o ON oi.order_id COLLATE utf8mb4_unicode_ci = o.order_id COLLATE utf8mb4_unicode_ci
+            WHERE o.order_status = 'delivered'
+            GROUP BY s.seller_id
+            ORDER BY total_revenue DESC
+        `);
+
+        const totalSellers = rows.length;
+        const rankIndex = rows.findIndex(r => r.seller_id === sellerId);
+
+        if (rankIndex === -1) {
+            return res.json({ success: true, rank: null, total: totalSellers, message: "目前沒有已送達訂單，尚無排名" });
+        }
+
+        res.json({ success: true, rank: rankIndex + 1, total: totalSellers });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Orders
 app.post('/orders', async (req, res) => {
     try {
@@ -324,18 +353,6 @@ app.post('/reviews', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Cities（給註冊頁城市下拉選單用）
-app.get('/cities', async (req, res) => {
-    try {
-        const [rows] = await db.query(
-            'SELECT DISTINCT geolocation_city FROM Geolocation ORDER BY geolocation_city ASC'
-        );
-        res.json(rows.map(r => r.geolocation_city));
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 
