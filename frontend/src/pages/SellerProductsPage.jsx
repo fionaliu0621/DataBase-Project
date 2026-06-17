@@ -2,6 +2,31 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 
+// 商品縮圖：用 React state 控制顯示圖片或 icon，不直接操作 DOM，
+// 避免跟 React 重新渲染時打架，導致「有時顯示、有時不顯示」的不穩定行為。
+function ProductThumbnail({ productId, productName }) {
+  const [imageError, setImageError] = useState(false);
+
+  if (imageError) {
+    return (
+      <div style={{ width:36, height:36, borderRadius:8, background:"#f5f5f5", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#ccc" }}>
+        <i className="ti ti-package" style={{ fontSize:16 }} aria-hidden="true" />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width:36, height:36, borderRadius:8, background:"#f5f5f5", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:"hidden" }}>
+      <img
+        src={`/images/${productId}.jpg`}
+        alt={productName}
+        style={{ width:"100%", height:"100%", objectFit:"cover" }}
+        onError={() => setImageError(true)}
+      />
+    </div>
+  );
+}
+
 // 評論彈窗：點某個商品後顯示「透過我出貨」那些訂單產生的評論
 function ReviewsModal({ sellerId, product, onClose }) {
   const [reviews, setReviews] = useState([]);
@@ -94,7 +119,7 @@ export default function SellerProductsPage() {
           const num = parseInt(String(p.product_id).replace("prod_", ""), 10);
           return num >= 1 && num <= 48;
         });
-setProducts(filtered);
+        setProducts(filtered);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -146,15 +171,8 @@ setProducts(filtered);
               onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
               onMouseLeave={e => e.currentTarget.style.background = "#fff"}
             >
-              <div style={{ width:36, height:36, borderRadius:8, background:"#f5f5f5", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:"hidden" }}>
-                <img
-                  src={`/images/${p.product_id}.jpg`}
-                  alt={p.product_name}
-                  style={{ width:"100%", height:"100%", objectFit:"cover" }}
-                  onError={e => { e.target.style.display = "none"; e.target.parentElement.innerHTML = '<i class="ti ti-package" style="font-size:16px;color:#ccc"></i>'; }}
-                />
-              </div>
-              
+              <ProductThumbnail productId={p.product_id} productName={p.product_name} />
+
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:13, fontWeight:500, color:"#111" }}>{p.product_name}</div>
                 <div style={{ fontSize:11, color:"#bbb" }}>{p.product_category_name}</div>
