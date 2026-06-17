@@ -235,6 +235,34 @@ app.get('/sellers/:id/rank', async (req, res) => {
     }
 });
 
+// 賣家銷售趨勢（依月或依季分組），用於折線圖
+app.get('/sellers/:id/sales-trend', async (req, res) => {
+    try {
+        const sellerId = req.params.id;
+        const period = req.query.period === 'quarter' ? 'quarter' : 'month';
+
+        const periodExpr = period === 'quarter'
+            ? "CONCAT(YEAR(o.order_purchase_timestamp), '-Q', QUARTER(o.order_purchase_timestamp))"
+            : "DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m')";
+
+        const [rows] = await db.query(`
+            SELECT
+                ${periodExpr} AS period,
+                SUM(oi.price * oi.order_item_quantity + oi.freight_value) AS revenue
+            FROM Order_Items oi
+            JOIN Orders o ON oi.order_id COLLATE utf8mb4_unicode_ci = o.order_id COLLATE utf8mb4_unicode_ci
+            WHERE oi.seller_id COLLATE utf8mb4_unicode_ci = ?
+            AND o.order_status = 'delivered'
+            GROUP BY period
+            ORDER BY period ASC
+        `, [sellerId]);
+
+        res.json(rows.map(r => ({ period: r.period, revenue: Number(r.revenue) })));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Orders
 app.post('/orders', async (req, res) => {
     try {
