@@ -156,6 +156,37 @@ app.get('/sellers/:id/orders', async (req, res) => {
     }
 });
 
+// 賣家自己賣過的商品（透過 Order_Items 去重）
+app.get('/sellers/:id/products', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT DISTINCT p.product_id, p.product_name, p.product_price, p.product_category_name
+            FROM Order_Items oi
+            JOIN Products p ON oi.product_id = p.product_id
+            WHERE oi.seller_id = ?
+        `, [req.params.id]);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 某個商品、且限定是透過這個賣家出貨的訂單，所產生的評論
+app.get('/sellers/:sellerId/products/:productId/reviews', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT r.review_score, r.review_comment_title, r.review_comment_message, r.review_creation_date
+            FROM Order_Reviews r
+            JOIN Order_Items oi ON r.order_id = oi.order_id
+            WHERE oi.product_id = ? AND oi.seller_id = ?
+            ORDER BY r.review_creation_date DESC
+        `, [req.params.productId, req.params.sellerId]);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/revenue/:id', async (req, res) => {
     try {
         const sellerId = req.params.id;
