@@ -142,9 +142,15 @@ export default function SellerProductsPage() {
               onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
               onMouseLeave={e => e.currentTarget.style.background = "#fff"}
             >
-              <div style={{ width:36, height:36, borderRadius:8, background:"#f5f5f5", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#ccc" }}>
-                <i className="ti ti-package" style={{ fontSize:16 }} aria-hidden="true" />
+              <div style={{ width:36, height:36, borderRadius:8, background:"#f5f5f5", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:"hidden" }}>
+                <img
+                  src={`/images/${p.product_id}.jpg`}
+                  alt={p.product_name}
+                  style={{ width:"100%", height:"100%", objectFit:"cover" }}
+                  onError={e => { e.target.style.display = "none"; e.target.parentElement.innerHTML = '<i class="ti ti-package" style="font-size:16px;color:#ccc"></i>'; }}
+                />
               </div>
+              
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:13, fontWeight:500, color:"#111" }}>{p.product_name}</div>
                 <div style={{ fontSize:11, color:"#bbb" }}>{p.product_category_name}</div>
