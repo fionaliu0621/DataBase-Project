@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 
-// 賣家 Dashboard：只放 Revenue 總覽。
+// 賣家 Dashboard：Revenue 總覽 + 全平台排名。
 // 商品列表 + 評論請見 /seller/products，訂單列表請見 /seller/orders。
 export default function SellerDashboardPage() {
   const { sellerId } = useAuth();
@@ -10,6 +10,10 @@ export default function SellerDashboardPage() {
   const [revenue, setRevenue] = useState(null);
   const [revenueLoading, setRevenueLoading] = useState(true);
   const [revenueError, setRevenueError] = useState(null);
+
+  const [rankData, setRankData] = useState(null);
+  const [rankLoading, setRankLoading] = useState(true);
+  const [rankError, setRankError] = useState(null);
 
   useEffect(() => {
     if (!sellerId) return;
@@ -32,7 +36,26 @@ export default function SellerDashboardPage() {
       }
     };
 
+    const fetchRank = async () => {
+      setRankLoading(true);
+      setRankError(null);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/sellers/${sellerId}/rank`);
+        const json = await res.json();
+        if (json.success) {
+          setRankData(json);
+        } else {
+          setRankError(json.error || "查詢排名失敗");
+        }
+      } catch (err) {
+        setRankError(err.message);
+      } finally {
+        setRankLoading(false);
+      }
+    };
+
     fetchRevenue();
+    fetchRank();
   }, [sellerId]);
 
   if (!sellerId) {
@@ -45,6 +68,13 @@ export default function SellerDashboardPage() {
       </div>
     );
   }
+
+  // 排名相關的計算：贏過幾位賣家、進度條比例
+  const hasRank = !rankLoading && !rankError && rankData && rankData.rank != null;
+  const beatenCount = hasRank ? rankData.total - rankData.rank : 0;
+  const progressPct = hasRank && rankData.total > 1
+    ? Math.round((beatenCount / (rankData.total - 1)) * 100)
+    : 0;
 
   return (
     <div style={{ fontFamily:"'Inter',sans-serif", background:"#fafafa", minHeight:"100vh" }}>
@@ -79,6 +109,40 @@ export default function SellerDashboardPage() {
               ))}
             </div>
           )}
+
+          {/* 全平台排名 */}
+          <div style={{ marginTop:"1.5rem", paddingTop:"1.5rem", borderTop:"0.5px solid #f0f0f0" }}>
+            <div style={{ fontSize:11, letterSpacing:"1.5px", color:"#bbb", marginBottom:10 }}>PLATFORM RANKING</div>
+
+            {rankLoading && <div style={{ fontSize:13, color:"#bbb" }}>Loading…</div>}
+            {rankError && <div style={{ fontSize:13, color:"#e24b4a" }}>查詢排名失敗：{rankError}</div>}
+            {!rankLoading && !rankError && rankData && rankData.rank == null && (
+              <div style={{ fontSize:13, color:"#bbb" }}>目前沒有已送達的訂單，尚無排名資料。</div>
+            )}
+
+            {hasRank && (
+              <>
+                <div style={{ display:"flex", alignItems:"baseline", gap:6, marginBottom:10 }}>
+                  <span style={{ fontSize:20, fontWeight:500, color:"#111" }}>第 {rankData.rank} 名</span>
+                  <span style={{ fontSize:12, color:"#bbb" }}>/ 共 {rankData.total} 位賣家</span>
+                </div>
+
+                <div style={{ height:8, background:"#f0f0f0", borderRadius:99, overflow:"hidden" }}>
+                  <div style={{
+                    height:"100%",
+                    width:`${progressPct}%`,
+                    background:"#111",
+                    borderRadius:99,
+                    transition:"width 0.3s",
+                  }} />
+                </div>
+
+                <div style={{ fontSize:11, color:"#bbb", marginTop:8 }}>
+                  你贏過了 {beatenCount} 位賣家（前 {100 - progressPct}% 排名）
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
