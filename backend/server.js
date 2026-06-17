@@ -137,6 +137,25 @@ app.get('/sellers/:id', async (req, res) => {
     }
 });
 
+// 賣家自己收到的訂單（依 seller_id 過濾 Order_Items）
+app.get('/sellers/:id/orders', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT o.order_id, o.order_status, o.order_purchase_timestamp,
+                   oi.product_id, oi.price, oi.order_item_quantity,
+                   p.product_name
+            FROM Order_Items oi
+            JOIN Orders o ON oi.order_id = o.order_id
+            LEFT JOIN Products p ON oi.product_id = p.product_id
+            WHERE oi.seller_id = ?
+            ORDER BY o.order_purchase_timestamp DESC
+        `, [req.params.id]);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/revenue/:id', async (req, res) => {
     try {
         const sellerId = req.params.id;
@@ -186,7 +205,6 @@ app.post('/orders', async (req, res) => {
 
         if (results && results[0] && results[0][0]) {
             const newOrderId = results[0][0].order_id;
-          
             return res.json({ success: true, order_id: newOrderId });
         } else {
             return res.json({ success: true, message: "訂單建立成功！" });
