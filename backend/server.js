@@ -179,6 +179,7 @@ app.get('/sellers/:id/products', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 // 賣家上架新商品
 app.post('/sellers/:id/products', async (req, res) => {
     try {
@@ -212,8 +213,6 @@ app.post('/sellers/:id/products', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
-
 
 // 某個商品、且限定是透過這個賣家出貨的訂單，所產生的評論
 app.get('/sellers/:sellerId/products/:productId/reviews', async (req, res) => {
@@ -325,7 +324,7 @@ app.patch('/orders/:id/approve', async (req, res) => {
 app.patch('/orders/:id/ship', async (req, res) => {
     try {
         const orderId = req.params.id;
-        const { carrier_date } = req.body; // 賣家輸入的出貨時間，留空則用NOW()
+        const { carrier_date } = req.body;
         const date = carrier_date ? new Date(carrier_date) : new Date();
         await db.query(
             'UPDATE Orders SET order_delivered_carrier_date = ?, order_status = ? WHERE order_id = ?',
@@ -381,6 +380,37 @@ app.get('/orders', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM Orders ORDER BY order_purchase_timestamp DESC LIMIT 20');
         res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 查詢單一訂單明細，給評論頁面用（顯示商品名稱、訂單狀態、出貨日期）
+app.get('/orders/:id', async (req, res) => {
+    try {
+        const [orders] = await db.query('SELECT * FROM Orders WHERE order_id = ?', [req.params.id]);
+        if (orders.length === 0) return res.status(404).json({ error: '找不到此訂單' });
+        const order = orders[0];
+
+        const [items] = await db.query(`
+            SELECT oi.product_id, oi.price, oi.order_item_quantity, p.product_name
+            FROM Order_Items oi
+            LEFT JOIN Products p ON oi.product_id = p.product_id
+            WHERE oi.order_id = ?
+        `, [req.params.id]);
+
+        res.json({
+            order_id: order.order_id,
+            status: order.order_status,
+            date: order.order_delivered_customer_date ?? order.order_purchase_timestamp,
+            delivered_date: order.order_delivered_customer_date,
+            items: items.map(it => ({
+                product_id: it.product_id,
+                name: it.product_name,
+                price: it.price,
+                qty: it.order_item_quantity,
+            })),
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
