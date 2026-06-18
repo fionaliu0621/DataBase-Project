@@ -1,6 +1,6 @@
 //
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { getProductById } from "../api/products";
 import { useApi } from "../hooks/useApi";
@@ -15,6 +15,7 @@ const btnOutline = { width:"100%", padding:12, background:"transparent", color:"
 
 export default function ProductDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const { addToCart, cartCount } = useCart();
@@ -111,6 +112,18 @@ export default function ProductDetailPage() {
   const reviews = product.reviews ?? [];
   const stock = product.stock ?? 0;
   const breadcrumb = ["Home", product.category ?? "Products", product.name ?? ""];
+
+  const handleAddToCart = () => {
+    if (stock === 0) return;
+    addToCart({
+      id: product.id ?? id,
+      name: product.name,
+      seller_id: seller.id ?? seller.seller_id,
+      seller: seller.name,
+      price,
+      icon: THUMBS[0],
+    }, qty);
+  };
 
   return (
     <div style={{ fontFamily:"'Inter',sans-serif", background:"#fafafa", minHeight:"100vh" }}>
@@ -244,22 +257,23 @@ export default function ProductDetailPage() {
               style={{ ...btnBlack, background: stock === 0 ? "#ccc" : "#111", cursor: stock === 0 ? "default" : "pointer" }}
               disabled={stock === 0}
               onClick={() => {
-                if (stock === 0) return;
-                addToCart({
-                  id: product.id ?? id,
-                  name: product.name,
-                  seller_id: seller.id ?? seller.seller_id,
-                  seller: seller.name,
-                  price,
-                  icon: THUMBS[0],
-                }, qty);
+                handleAddToCart();
                 setAdded(true);
                 setTimeout(() => setAdded(false), 1500);
               }}
             >
               {stock === 0 ? "Out of stock" : added ? "Added ✓" : "Add to bag"}
             </button>
-            <button style={btnOutline}>Buy now</button>
+            <button
+              style={{ ...btnOutline, opacity: stock === 0 ? 0.5 : 1, cursor: stock === 0 ? "default" : "pointer" }}
+              disabled={stock === 0}
+              onClick={() => {
+                handleAddToCart();
+                navigate("/cart");
+              }}
+            >
+              {stock === 0 ? "Out of stock" : "Buy now"}
+            </button>
             <div style={{ marginTop:"1.25rem", paddingTop:"1.25rem", borderTop:"0.5px solid #f0f0f0", display:"flex", flexDirection:"column", gap:8 }}>
               {[["ti-truck","Est. delivery May 30 – Jun 1"],["ti-shield-check","Buyer protection included"],["ti-refresh","7-day returns"]].map(([icon,text]) => (
                 <div key={icon} style={{ display:"flex", alignItems:"center", gap:8, fontSize:11, color:"#999" }}>
