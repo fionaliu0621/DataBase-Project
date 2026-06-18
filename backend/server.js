@@ -63,9 +63,6 @@ app.get('/products/:id', async (req, res) => {
                 };
             }
         }
-
-        // 評論：先抓出全部評論（不限制筆數），用來算正確的平均星等跟總數，
-        // 畫面上實際顯示的列表再另外只取前 5 筆，避免頁面被拉得太長。
         const [reviews] = await db.query(`
             SELECT r.review_score, r.review_comment_title, r.review_comment_message, r.review_creation_date
             FROM Order_Reviews r
@@ -152,6 +149,7 @@ app.get('/sellers/:id/orders', async (req, res) => {
     try {
         const [rows] = await db.query(`
             SELECT o.order_id, o.order_status, o.order_purchase_timestamp,
+                   o.order_approved_at, o.order_delivered_carrier_date,
                    oi.product_id, oi.price, oi.order_item_quantity,
                    p.product_name
             FROM Order_Items oi
@@ -216,7 +214,7 @@ app.get('/revenue/:id', async (req, res) => {
     }
 });
 
-// 賣家在所有賣家中的營收排名（只回傳排名跟總賣家數，不洩漏其他賣家的具體金額/身份）
+// 賣家在所有賣家中的營收排名
 app.get('/sellers/:id/rank', async (req, res) => {
     try {
         const sellerId = req.params.id;
@@ -245,7 +243,7 @@ app.get('/sellers/:id/rank', async (req, res) => {
     }
 });
 
-// 賣家銷售趨勢（依月或依季分組），用於折線圖
+// 賣家銷售趨勢（依月或依季分組）
 app.get('/sellers/:id/sales-trend', async (req, res) => {
     try {
         const sellerId = req.params.id;
@@ -270,6 +268,36 @@ app.get('/sellers/:id/sales-trend', async (req, res) => {
         res.json(rows.map(r => ({ period: r.period, revenue: Number(r.revenue) })));
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// 賣家確認接單：填入 order_approved_at，狀態改 approved
+app.patch('/orders/:id/approve', async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        await db.query(
+            'UPDATE Orders SET order_approved_at = NOW(), order_status = ? WHERE order_id = ?',
+            ['approved', orderId]
+        );
+        res.json({ success: true, message: '已確認接單' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// 賣家確認出貨：填入 order_delivered_carrier_date，狀態改 shipped
+app.patch('/orders/:id/ship', async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const { carrier_date } = req.body; // 賣家輸入的出貨時間，留空則用NOW()
+        const date = carrier_date ? new Date(carrier_date) : new Date();
+        await db.query(
+            'UPDATE Orders SET order_delivered_carrier_date = ?, order_status = ? WHERE order_id = ?',
+            [date, 'shipped', orderId]
+        );
+        res.json({ success: true, message: '已確認出貨' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -391,6 +419,18 @@ app.post('/reviews', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Cities（給註冊頁城市下拉選單用）
+app.get('/cities', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT DISTINCT geolocation_city FROM Geolocation ORDER BY geolocation_city ASC'
+        );
+        res.json(rows.map(r => r.geolocation_city));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
