@@ -178,18 +178,18 @@ function NewProductModal({ sellerId, onClose, onCreated }) {
         </div>
 
         <div style={{ marginBottom:12 }}>
-          <div style={fieldLabel}>分類</div>
-          <select style={inputStyle} value={form.product_category_name} onChange={handleChange("product_category_name")}>
-            <option value="">請選擇分類</option>
-            <option value="Electronics">Electronics</option>
-            <option value="Fashion">Fashion</option>
-            <option value="Home & Living">Home & Living</option>
-            <option value="Sports">Sports</option>
-            <option value="Books">Books</option>
-            <option value="Beauty">Beauty</option>
-            <option value="Toys">Toys</option>
-          </select>
-        );
+        <div style={fieldLabel}>分類</div>
+        <select style={inputStyle} value={form.product_category_name} onChange={handleChange("product_category_name")}>
+          <option value="">請選擇分類</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Fashion">Fashion</option>
+          <option value="Home & Living">Home & Living</option>
+          <option value="Sports">Sports</option>
+          <option value="Books">Books</option>
+          <option value="Beauty">Beauty</option>
+          <option value="Toys">Toys</option>
+        </select>
+      </div>
 
         <div style={{ marginBottom:12 }}>
           <div style={fieldLabel}>價格 (NT$) *</div>
