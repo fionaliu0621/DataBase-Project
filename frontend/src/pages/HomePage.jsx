@@ -548,14 +548,14 @@ export default function HomePage() {
 
           {!loading &&
             displayProducts
-              .filter((p) => {
-                const pid = p.id ?? p.product_id;
-                if (pid && String(pid).startsWith("prod_")) {
-                  const num = parseInt(String(pid).replace("prod_", ""), 10);
-                  return num >= 1 && num <= 48;
-                }
-                return true;
-              })
+              // .filter((p) => {
+              //   const pid = p.id ?? p.product_id;
+              //   if (pid && String(pid).startsWith("prod_")) {
+              //     const num = parseInt(String(pid).replace("prod_", ""), 10);
+              //     return num >= 1 && num <= 48;
+              //   }
+              //   return true;
+              // })
               .map((p) => {
                 const pid = p.id ?? p.product_id;
                 return (
