@@ -18,6 +18,7 @@ const S = {
 const CUSTOMER_LINKS = [
   { label:"Products",    to:"/"            },
   { label:"Sellers",     to:"/sellers"     },
+  { label:"Orders",      to:"/orders"      },
   { label:"About",       to:"/about"       },
 ];
 
