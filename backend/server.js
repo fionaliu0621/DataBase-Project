@@ -168,16 +168,52 @@ app.get('/sellers/:id/orders', async (req, res) => {
 app.get('/sellers/:id/products', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT DISTINCT p.product_id, p.product_name, p.product_price, p.product_category_name
-            FROM Order_Items oi
-            JOIN Products p ON oi.product_id = p.product_id
-            WHERE oi.seller_id = ?
+            SELECT product_id, product_name, product_price, product_category_name,
+                   product_weight_g, product_length_cm, product_height_cm, product_width_cm,
+                   product_photos_qty, product_available
+            FROM Products
+            WHERE product_seller_id = ?
         `, [req.params.id]);
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
+// 賣家上架新商品
+app.post('/sellers/:id/products', async (req, res) => {
+    try {
+        const sellerId = req.params.id;
+        const {
+            product_name, product_category_name, product_price,
+            product_weight_g, product_length_cm, product_height_cm, product_width_cm,
+            product_photos_qty, product_available
+        } = req.body;
+
+        if (!product_name || !product_price) {
+            return res.status(400).json({ success: false, error: "商品名稱與價格為必填" });
+        }
+
+        const productId = `prod_${Date.now()}`;
+
+        await db.query(`
+            INSERT INTO Products (
+                product_id, product_seller_id, product_name, product_category_name,
+                product_weight_g, product_length_cm, product_height_cm, product_width_cm,
+                product_photos_qty, product_available, product_price
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+            productId, sellerId, product_name, product_category_name || null,
+            product_weight_g || null, product_length_cm || null, product_height_cm || null, product_width_cm || null,
+            product_photos_qty || 0, product_available || 0, product_price
+        ]);
+
+        res.json({ success: true, product_id: productId });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
 
 // 某個商品、且限定是透過這個賣家出貨的訂單，所產生的評論
 app.get('/sellers/:sellerId/products/:productId/reviews', async (req, res) => {
