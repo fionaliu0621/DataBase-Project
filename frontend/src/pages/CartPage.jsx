@@ -26,6 +26,7 @@ const inputBase = {
 };
 const inputError = { ...inputBase, border:"0.5px solid #e24b4a", background:"#fff9f9" };
 const secLabel = { fontSize:11, letterSpacing:"1.5px", color:"#bbb", marginBottom:"1.25rem" };
+const fieldLabel = { fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:5 };
 
 const ADDRESS_FIELDS = [
   { key:"firstName",  label:"FIRST NAME",   grid:"1/2" },
@@ -34,6 +35,132 @@ const ADDRESS_FIELDS = [
   { key:"city",       label:"CITY",         grid:"1/2" },
   { key:"postalCode", label:"POSTAL CODE",  grid:"2/3" },
 ];
+
+// 卡號每 4 位數加一個空格，方便閱讀（純前端顯示用，不影響送出的值）
+function formatCardNumber(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 16);
+  return digits.replace(/(.{4})/g, "$1 ").trim();
+}
+
+// 到期日自動補上 "/"（輸入 4 位數字自動變成 MM/YY）
+function formatExpiry(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+
+// 卡片詳情表單：Credit card / Debit card 共用。
+// 注意：這裡蒐集的卡號、到期日、CVV 純粹是前端 UI 體感用，
+// 不會被送進 POST /orders（後端 Order_Payments 表本身也沒有對應欄位可存），
+// 跟真實金流串接的精神一致 —— 卡片明細不落地存進自己的資料庫。
+function CardDetailsForm({ card, setCard }) {
+  return (
+    <div style={{ background:"#fff", borderRadius:12, border:"0.5px solid #e8e8e8", padding:"1.5rem", marginTop:12 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"1.25rem" }}>
+        <div style={{ fontSize:11, letterSpacing:"1.5px", color:"#bbb" }}>CARD DETAILS</div>
+        <img
+          src="/images/credit_logo.jpg"
+          alt="Accepted cards"
+          style={{ height:18, objectFit:"contain" }}
+          onError={e => { e.target.style.display = "none"; }}
+        />
+      </div>
+
+      <div style={{ marginBottom:12 }}>
+        <div style={fieldLabel}>CARD NUMBER</div>
+        <input
+          value={card.number}
+          onChange={e => setCard(c => ({ ...c, number: formatCardNumber(e.target.value) }))}
+          placeholder="1234 5678 9012 3456"
+          inputMode="numeric"
+          style={inputBase}
+        />
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+        <div>
+          <div style={fieldLabel}>EXPIRY DATE (MM/YY)</div>
+          <input
+            value={card.expiry}
+            onChange={e => setCard(c => ({ ...c, expiry: formatExpiry(e.target.value) }))}
+            placeholder="MM/YY"
+            inputMode="numeric"
+            style={inputBase}
+          />
+        </div>
+        <div>
+          <div style={{ ...fieldLabel, display:"flex", alignItems:"center", gap:5 }}>
+            CVV
+            <i className="ti ti-help-circle" style={{ fontSize:12, color:"#ccc" }} aria-hidden="true" title="3-digit code on the back of your card" />
+          </div>
+          <input
+            value={card.cvv}
+            onChange={e => setCard(c => ({ ...c, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) }))}
+            placeholder="123"
+            inputMode="numeric"
+            style={inputBase}
+          />
+        </div>
+      </div>
+
+      <div>
+        <div style={fieldLabel}>NAME ON CARD</div>
+        <input
+          value={card.name}
+          onChange={e => setCard(c => ({ ...c, name: e.target.value }))}
+          placeholder="John Doe"
+          style={inputBase}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Bank transfer：純展示用的轉帳資訊，沒有輸入框
+function BankTransferInfo() {
+  return (
+    <div style={{ background:"#fff", borderRadius:12, border:"0.5px solid #e8e8e8", padding:"1.5rem", marginTop:12 }}>
+      <div style={{ fontSize:11, letterSpacing:"1.5px", color:"#bbb", marginBottom:"1.25rem" }}>TRANSFER INSTRUCTIONS</div>
+      <div style={{ background:"#fafafa", borderRadius:10, padding:"14px 16px", fontSize:13, lineHeight:1.8, color:"#444" }}>
+        <div>Please transfer the total amount to the account below within 24 hours.</div>
+        <div style={{ marginTop:10, display:"flex", justifyContent:"space-between" }}>
+          <span style={{ color:"#999" }}>Bank</span>
+          <span style={{ fontWeight:500 }}>ShopHub Bank</span>
+        </div>
+        <div style={{ display:"flex", justifyContent:"space-between" }}>
+          <span style={{ color:"#999" }}>Account number</span>
+          <span style={{ fontWeight:500, fontFamily:"monospace" }}>123-456-789012</span>
+        </div>
+        <div style={{ display:"flex", justifyContent:"space-between" }}>
+          <span style={{ color:"#999" }}>Account name</span>
+          <span style={{ fontWeight:500 }}>ShopHub Co., Ltd.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Voucher：兌換碼輸入框 + Apply 按鈕
+function VoucherForm({ voucherCode, setVoucherCode }) {
+  return (
+    <div style={{ background:"#fff", borderRadius:12, border:"0.5px solid #e8e8e8", padding:"1.5rem", marginTop:12 }}>
+      <div style={fieldLabel}>VOUCHER CODE</div>
+      <div style={{ display:"flex", gap:8 }}>
+        <input
+          value={voucherCode}
+          onChange={e => setVoucherCode(e.target.value)}
+          placeholder="Enter your voucher code"
+          style={{ ...inputBase, flex:1 }}
+        />
+        <button
+          style={{ padding:"0 18px", border:"none", borderRadius:8, fontSize:12, fontWeight:500, cursor:"pointer", background:"#111", color:"#fff", fontFamily:"'Inter',sans-serif" }}
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function CartPage() {
   const { items, updateQty, removeFromCart, clearCart } = useCart();
@@ -53,6 +180,10 @@ export default function CartPage() {
     firstName: "", lastName: "", address: "", city: "", postalCode: "",
   });
   const [addrErrors, setAddrErrors] = useState({});
+
+  // Card details state（純前端體感用，不送進後端）
+  const [card, setCard] = useState({ number: "", expiry: "", cvv: "", name: "" });
+  const [voucherCode, setVoucherCode] = useState("");
 
   const sub      = items.reduce((s, it) => s + it.price * it.qty, 0);
   const shipping = sub > 1000 ? 0 : 60;
@@ -115,6 +246,8 @@ export default function CartPage() {
           quantity: it.qty,
           // address fields
           shipping_address: `${addr.firstName} ${addr.lastName}, ${addr.address}, ${addr.city} ${addr.postalCode}`,
+          // 注意：card / voucherCode 不放進 payload —— 卡片明細不送進後端，
+          // 只送 payment_type 跟金額，跟真實金流不落地存卡號的精神一致。
         };
         const res = await createOrder(payload);
         results.push(res?.order_id);
@@ -241,6 +374,13 @@ export default function CartPage() {
             ))}
           </div>
 
+          {/* 對應每種付款方式的詳細欄位 */}
+          {(pay === "credit_card" || pay === "debit_card") && (
+            <CardDetailsForm card={card} setCard={setCard} />
+          )}
+          {pay === "transfer" && <BankTransferInfo />}
+          {pay === "voucher" && <VoucherForm voucherCode={voucherCode} setVoucherCode={setVoucherCode} />}
+
           {/* Installments */}
           {(pay === "credit_card" || pay === "debit_card") && (
             <div style={{ background:"#fff", borderRadius:12, border:"0.5px solid #e8e8e8", padding:"14px 20px", marginTop:12 }}>
@@ -258,7 +398,7 @@ export default function CartPage() {
                       fontFamily:"'Inter',sans-serif",
                     }}
                   >
-                    {n === 1 ? "一次付清" : `${n} 期`}
+                    {n === 1 ? "Pay in full" : `${n}x`}
                   </button>
                 ))}
               </div>
