@@ -32,6 +32,7 @@ function ReviewsModal({ sellerId, product, onClose }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -59,10 +60,24 @@ function ReviewsModal({ sellerId, product, onClose }) {
       onClick={onClose}
     >
       <div
-        style={{ background:"#fff", borderRadius:16, padding:"2rem", minWidth:380, maxWidth:480, maxHeight:"70vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.12)" }}
+        style={{ background:"#fff", borderRadius:16, padding:"2rem", minWidth:480, maxWidth:640, maxHeight:"85vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.12)" }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ fontSize:13, fontWeight:500, color:"#111", marginBottom:4 }}>{product.product_name}</div>
+        {/* 商品圖片 */}
+        <div style={{ width:"100%", height:220, borderRadius:12, background:"#f5f5f5", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", marginBottom:16 }}>
+          {imageError ? (
+            <i className="ti ti-package" style={{ fontSize:48, color:"#ccc" }} aria-hidden="true" />
+          ) : (
+            <img
+              src={`/images/${product.product_id}.jpg`}
+              alt={product.product_name}
+              style={{ width:"100%", height:"100%", objectFit:"contain" }}
+              onError={() => setImageError(true)}
+            />
+          )}
+        </div>
+
+        <div style={{ fontSize:16, fontWeight:500, color:"#111", marginBottom:4 }}>{product.product_name}</div>
 
         {/* 商品規格摘要 */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, padding:"12px", background:"#fafafa", borderRadius:10, marginBottom:16, marginTop:12 }}>
@@ -178,18 +193,9 @@ function NewProductModal({ sellerId, onClose, onCreated }) {
         </div>
 
         <div style={{ marginBottom:12 }}>
-        <div style={fieldLabel}>分類</div>
-        <select style={inputStyle} value={form.product_category_name} onChange={handleChange("product_category_name")}>
-          <option value="">請選擇分類</option>
-          <option value="Electronics">Electronics</option>
-          <option value="Fashion">Fashion</option>
-          <option value="Home & Living">Home & Living</option>
-          <option value="Sports">Sports</option>
-          <option value="Books">Books</option>
-          <option value="Beauty">Beauty</option>
-          <option value="Toys">Toys</option>
-        </select>
-      </div>
+          <div style={fieldLabel}>分類</div>
+          <input style={inputStyle} value={form.product_category_name} onChange={handleChange("product_category_name")} placeholder="例如 Books" />
+        </div>
 
         <div style={{ marginBottom:12 }}>
           <div style={fieldLabel}>價格 (NT$) *</div>
