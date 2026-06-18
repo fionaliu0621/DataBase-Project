@@ -59,9 +59,9 @@ function formatExpiry(value) {
 // 注意：這裡蒐集的卡號、到期日、CVV 純粹是前端 UI 體感用，
 // 不會被送進 POST /orders（後端 Order_Payments 表本身也沒有對應欄位可存），
 // 跟真實金流串接的精神一致 —— 卡片明細不落地存進自己的資料庫。
-function CardDetailsForm({ card, setCard }) {
+function CardDetailsForm({ card, setCard, cardErrors }) {
   return (
-    <div style={{ background:"#fff", borderRadius:12, border:"0.5px solid #e8e8e8", padding:"1.5rem", marginTop:12 }}>
+    <div id="card-details-section" style={{ background:"#fff", borderRadius:12, border:"0.5px solid #e8e8e8", padding:"1.5rem", marginTop:12 }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"1.25rem" }}>
         <div style={{ fontSize:11, letterSpacing:"1.5px", color:"#bbb" }}>CARD DETAILS</div>
         <img
@@ -73,29 +73,41 @@ function CardDetailsForm({ card, setCard }) {
       </div>
 
       <div style={{ marginBottom:12 }}>
-        <div style={fieldLabel}>CARD NUMBER</div>
+        <div style={{ ...fieldLabel, color: cardErrors.number ? "#e24b4a" : "#bbb" }}>CARD NUMBER</div>
         <input
           value={card.number}
           onChange={e => setCard(c => ({ ...c, number: formatCardNumber(e.target.value) }))}
           placeholder="1234 5678 9012 3456"
           inputMode="numeric"
-          style={inputBase}
+          style={cardErrors.number ? inputError : inputBase}
         />
+        {cardErrors.number && (
+          <div style={{ fontSize:11, color:"#e24b4a", marginTop:4, display:"flex", alignItems:"center", gap:4 }}>
+            <i className="ti ti-alert-circle" style={{ fontSize:12 }} aria-hidden="true" />
+            {cardErrors.number}
+          </div>
+        )}
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
         <div>
-          <div style={fieldLabel}>EXPIRY DATE (MM/YY)</div>
+          <div style={{ ...fieldLabel, color: cardErrors.expiry ? "#e24b4a" : "#bbb" }}>EXPIRY DATE (MM/YY)</div>
           <input
             value={card.expiry}
             onChange={e => setCard(c => ({ ...c, expiry: formatExpiry(e.target.value) }))}
             placeholder="MM/YY"
             inputMode="numeric"
-            style={inputBase}
+            style={cardErrors.expiry ? inputError : inputBase}
           />
+          {cardErrors.expiry && (
+            <div style={{ fontSize:11, color:"#e24b4a", marginTop:4, display:"flex", alignItems:"center", gap:4 }}>
+              <i className="ti ti-alert-circle" style={{ fontSize:12 }} aria-hidden="true" />
+              {cardErrors.expiry}
+            </div>
+          )}
         </div>
         <div>
-          <div style={{ ...fieldLabel, display:"flex", alignItems:"center", gap:5 }}>
+          <div style={{ ...fieldLabel, display:"flex", alignItems:"center", gap:5, color: cardErrors.cvv ? "#e24b4a" : "#bbb" }}>
             CVV
             <i className="ti ti-help-circle" style={{ fontSize:12, color:"#ccc" }} aria-hidden="true" title="3-digit code on the back of your card" />
           </div>
@@ -104,19 +116,31 @@ function CardDetailsForm({ card, setCard }) {
             onChange={e => setCard(c => ({ ...c, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) }))}
             placeholder="123"
             inputMode="numeric"
-            style={inputBase}
+            style={cardErrors.cvv ? inputError : inputBase}
           />
+          {cardErrors.cvv && (
+            <div style={{ fontSize:11, color:"#e24b4a", marginTop:4, display:"flex", alignItems:"center", gap:4 }}>
+              <i className="ti ti-alert-circle" style={{ fontSize:12 }} aria-hidden="true" />
+              {cardErrors.cvv}
+            </div>
+          )}
         </div>
       </div>
 
       <div>
-        <div style={fieldLabel}>NAME ON CARD</div>
+        <div style={{ ...fieldLabel, color: cardErrors.name ? "#e24b4a" : "#bbb" }}>NAME ON CARD</div>
         <input
           value={card.name}
           onChange={e => setCard(c => ({ ...c, name: e.target.value }))}
           placeholder="John Doe"
-          style={inputBase}
+          style={cardErrors.name ? inputError : inputBase}
         />
+        {cardErrors.name && (
+          <div style={{ fontSize:11, color:"#e24b4a", marginTop:4, display:"flex", alignItems:"center", gap:4 }}>
+            <i className="ti ti-alert-circle" style={{ fontSize:12 }} aria-hidden="true" />
+            {cardErrors.name}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -167,6 +191,7 @@ export default function CartPage() {
 
   // Card details state（純前端體感用，不送進後端）
   const [card, setCard] = useState({ number: "", expiry: "", cvv: "", name: "" });
+  const [cardErrors, setCardErrors] = useState({});
 
   // Voucher state：輸入框 + 已套用的折扣碼跟金額
   const [voucherInput, setVoucherInput] = useState("");
@@ -217,6 +242,17 @@ export default function CartPage() {
     return errors;
   };
 
+  // 卡片格式驗證：只在選擇 credit_card / debit_card 時需要
+  const validateCard = () => {
+    const errors = {};
+    const digits = card.number.replace(/\D/g, "");
+    if (digits.length !== 16) errors.number = "卡號需為 16 位數字";
+    if (!/^\d{2}\/\d{2}$/.test(card.expiry)) errors.expiry = "請輸入正確的 MM/YY 格式";
+    if (card.cvv.length !== 3) errors.cvv = "CVV 需為 3 位數字";
+    if (!card.name.trim()) errors.name = "請輸入持卡人姓名";
+    return errors;
+  };
+
   // ── Place order ───────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
     if (items.length === 0) return;
@@ -234,6 +270,18 @@ export default function CartPage() {
       document.getElementById("shipping-address-section")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
+    }
+
+    // Validate card details if paying by credit/debit card
+    if (pay === "credit_card" || pay === "debit_card") {
+      const cErrors = validateCard();
+      if (Object.keys(cErrors).length > 0) {
+        setCardErrors(cErrors);
+        document.getElementById("card-details-section")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      setCardErrors({});
     }
 
     setPlacing(true);
@@ -392,7 +440,7 @@ export default function CartPage() {
 
           {/* 對應每種付款方式的詳細欄位（Voucher 已合併到右側 Order Summary 的折扣碼欄位，這裡不再重複顯示） */}
           {(pay === "credit_card" || pay === "debit_card") && (
-            <CardDetailsForm card={card} setCard={setCard} />
+            <CardDetailsForm card={card} setCard={setCard} cardErrors={cardErrors} />
           )}
           {pay === "transfer" && <BankTransferInfo />}
 
