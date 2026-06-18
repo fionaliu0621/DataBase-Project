@@ -12,7 +12,6 @@ const PAYS = [
   { id:"credit_card", icon:"ti-credit-card",   label:"Credit card",   sub:"Visa, Mastercard, JCB" },
   { id:"debit_card",  icon:"ti-credit-card",   label:"Debit card",    sub:"Bank debit card"       },
   { id:"transfer",    icon:"ti-building-bank", label:"Bank transfer", sub:"ATM / Wire transfer"    },
-  { id:"voucher",     icon:"ti-ticket",        label:"Voucher",       sub:"Gift card / Voucher code" },
 ];
 
 const INSTALLMENT_OPTIONS = [1, 3, 6, 12];
