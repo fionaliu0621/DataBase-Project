@@ -17,6 +17,13 @@ const PAYS = [
 
 const INSTALLMENT_OPTIONS = [1, 3, 6, 12];
 
+// 固定金額折扣碼對應表（純前端，資料庫沒有對應的 Voucher 表，不查資料庫）
+const VOUCHER_CODES = {
+  SAVE100:  100,
+  SAVE200:  200,
+  WELCOME50: 50,
+};
+
 const inputBase = {
   width:"100%", height:36, padding:"0 12px",
   border:"0.5px solid #e8e8e8", borderRadius:8,
@@ -61,7 +68,7 @@ function CardDetailsForm({ card, setCard }) {
         <img
           src="/images/credit_logo.jpg"
           alt="Accepted cards"
-          style={{ height:18, objectFit:"contain" }}
+          style={{ height:32, objectFit:"contain" }}
           onError={e => { e.target.style.display = "none"; }}
         />
       </div>
@@ -140,28 +147,6 @@ function BankTransferInfo() {
   );
 }
 
-// Voucher：兌換碼輸入框 + Apply 按鈕
-function VoucherForm({ voucherCode, setVoucherCode }) {
-  return (
-    <div style={{ background:"#fff", borderRadius:12, border:"0.5px solid #e8e8e8", padding:"1.5rem", marginTop:12 }}>
-      <div style={fieldLabel}>VOUCHER CODE</div>
-      <div style={{ display:"flex", gap:8 }}>
-        <input
-          value={voucherCode}
-          onChange={e => setVoucherCode(e.target.value)}
-          placeholder="Enter your voucher code"
-          style={{ ...inputBase, flex:1 }}
-        />
-        <button
-          style={{ padding:"0 18px", border:"none", borderRadius:8, fontSize:12, fontWeight:500, cursor:"pointer", background:"#111", color:"#fff", fontFamily:"'Inter',sans-serif" }}
-        >
-          Apply
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function CartPage() {
   const { items, updateQty, removeFromCart, clearCart } = useCart();
   const [pay, setPay]               = useState("credit_card");
@@ -183,11 +168,38 @@ export default function CartPage() {
 
   // Card details state（純前端體感用，不送進後端）
   const [card, setCard] = useState({ number: "", expiry: "", cvv: "", name: "" });
-  const [voucherCode, setVoucherCode] = useState("");
 
-  const sub      = items.reduce((s, it) => s + it.price * it.qty, 0);
-  const shipping = sub > 1000 ? 0 : 60;
-  const total    = sub + shipping;
+  // Voucher state：輸入框 + 已套用的折扣碼跟金額
+  const [voucherInput, setVoucherInput] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState(null); // { code, discount }
+  const [voucherError, setVoucherError] = useState(null);
+
+  const handleApplyVoucher = () => {
+    const code = voucherInput.trim().toUpperCase();
+    if (!code) {
+      setVoucherError("請輸入折扣碼");
+      return;
+    }
+    const discount = VOUCHER_CODES[code];
+    if (discount == null) {
+      setVoucherError("無效的折扣碼");
+      setAppliedVoucher(null);
+      return;
+    }
+    setAppliedVoucher({ code, discount });
+    setVoucherError(null);
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInput("");
+    setVoucherError(null);
+  };
+
+  const sub          = items.reduce((s, it) => s + it.price * it.qty, 0);
+  const shipping      = sub > 1000 ? 0 : 60;
+  const voucherDiscount = appliedVoucher?.discount ?? 0;
+  const total         = Math.max(0, sub + shipping - voucherDiscount);
   const firstOrderId = orderSuccess?.[0];
 
   // ── Address helpers ───────────────────────────────────────────────
@@ -231,7 +243,12 @@ export default function CartPage() {
 
     try {
       const results = [];
+      // 折扣金額平均分攤到每個商品的 payment_value 上，讓加總後的付款總額跟畫面上的 Total 一致
+      const perItemDiscount = items.length > 0 ? voucherDiscount / items.length : 0;
+
       for (const it of items) {
+        const rawValue = it.price * it.qty;
+        const discountedValue = Math.max(0, rawValue - perItemDiscount);
         const payload = {
           customer_id: customerId,
           product_id: it.id,
@@ -242,11 +259,11 @@ export default function CartPage() {
             .toISOString().slice(0, 10),
           payment_type: pay,
           payment_installments: installments,
-          payment_value: it.price * it.qty,
+          payment_value: discountedValue,
           quantity: it.qty,
           // address fields
           shipping_address: `${addr.firstName} ${addr.lastName}, ${addr.address}, ${addr.city} ${addr.postalCode}`,
-          // 注意：card / voucherCode 不放進 payload —— 卡片明細不送進後端，
+          // 注意：card 不放進 payload —— 卡片明細不送進後端，
           // 只送 payment_type 跟金額，跟真實金流不落地存卡號的精神一致。
         };
         const res = await createOrder(payload);
@@ -374,12 +391,11 @@ export default function CartPage() {
             ))}
           </div>
 
-          {/* 對應每種付款方式的詳細欄位 */}
+          {/* 對應每種付款方式的詳細欄位（Voucher 已合併到右側 Order Summary 的折扣碼欄位，這裡不再重複顯示） */}
           {(pay === "credit_card" || pay === "debit_card") && (
             <CardDetailsForm card={card} setCard={setCard} />
           )}
           {pay === "transfer" && <BankTransferInfo />}
-          {pay === "voucher" && <VoucherForm voucherCode={voucherCode} setVoucherCode={setVoucherCode} />}
 
           {/* Installments */}
           {(pay === "credit_card" || pay === "debit_card") && (
@@ -416,13 +432,53 @@ export default function CartPage() {
             </div>
           ))}
 
+          {appliedVoucher && (
+            <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, padding:"5px 0", color:"#3b6d11" }}>
+              <span>Voucher ({appliedVoucher.code})</span><span>−NT${appliedVoucher.discount.toLocaleString()}</span>
+            </div>
+          )}
+
           <div style={{ display:"flex", justifyContent:"space-between", fontSize:15, fontWeight:500, borderTop:"0.5px solid #e8e8e8", paddingTop:14, marginTop:8 }}>
             <span>Total</span><span>NT${total.toLocaleString()}</span>
           </div>
 
-          <div style={{ display:"flex", gap:6, margin:"14px 0" }}>
-            <input placeholder="Promo code" style={{ flex:1, height:34, padding:"0 12px", border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:12, outline:"none", fontFamily:"'Inter',sans-serif", background:"#fafafa" }} />
-            <button style={{ padding:"0 14px", height:34, border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:11, cursor:"pointer", background:"#fff", fontFamily:"'Inter',sans-serif" }}>Apply</button>
+          {/* Voucher / Promo code 欄位（合併原本重複的 Voucher 跟 Promo code 兩個輸入框） */}
+          <div style={{ margin:"14px 0" }}>
+            {!appliedVoucher ? (
+              <>
+                <div style={{ display:"flex", gap:6 }}>
+                  <input
+                    placeholder="Voucher code"
+                    value={voucherInput}
+                    onChange={e => { setVoucherInput(e.target.value); setVoucherError(null); }}
+                    onKeyDown={e => e.key === "Enter" && handleApplyVoucher()}
+                    style={{ flex:1, height:34, padding:"0 12px", border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:12, outline:"none", fontFamily:"'Inter',sans-serif", background:"#fafafa" }}
+                  />
+                  <button
+                    onClick={handleApplyVoucher}
+                    style={{ padding:"0 14px", height:34, border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:11, cursor:"pointer", background:"#fff", fontFamily:"'Inter',sans-serif" }}
+                  >
+                    Apply
+                  </button>
+                </div>
+                {voucherError && (
+                  <div style={{ fontSize:11, color:"#e24b4a", marginTop:6 }}>{voucherError}</div>
+                )}
+              </>
+            ) : (
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 12px", background:"#f0fdf4", border:"0.5px solid #d4f0d4", borderRadius:8, fontSize:12 }}>
+                <span style={{ color:"#3b6d11" }}>
+                  <i className="ti ti-discount-check" style={{ fontSize:13, marginRight:4 }} aria-hidden="true" />
+                  {appliedVoucher.code} applied
+                </span>
+                <button
+                  onClick={handleRemoveVoucher}
+                  style={{ background:"none", border:"none", color:"#bbb", fontSize:11, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Inline address error banner (redundant but helpful near the button) */}
