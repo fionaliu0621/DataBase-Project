@@ -8,7 +8,9 @@ PASSWORD = "2p5fEhW#FH7M"
 HOST = "140.122.184.121"
 PORT = "3306"
 DB_NAME = "team11"
+# railway
 engine = create_engine("mysql+pymysql://root:lgQDrysfnZuyOzkWrAFleVTOxTCuNoGZ@thomas.proxy.rlwy.net:57286/railway")
+#local
 # engine = create_engine(f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}")
 
 # ⚠️ 關鍵：依據外鍵相依性排定嚴格的匯入順序
