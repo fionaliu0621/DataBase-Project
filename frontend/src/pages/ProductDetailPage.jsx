@@ -1,12 +1,13 @@
+//
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { getProductById } from "../api/products";
 import { useApi } from "../hooks/useApi";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 const THUMBS = ["ti-headphones","ti-package","ti-plug","ti-file-description"];
-
 const card = { background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", padding:"1.75rem" };
 const label = { fontSize:11, letterSpacing:"1.5px", color:"#bbb", marginBottom:10 };
 const btnBlack = { width:"100%", padding:12, background:"#111", color:"#fff", border:"none", borderRadius:99, fontSize:13, fontWeight:500, cursor:"pointer", letterSpacing:"0.3px", marginBottom:8, fontFamily:"'Inter',sans-serif" };
@@ -14,23 +15,73 @@ const btnOutline = { width:"100%", padding:12, background:"transparent", color:"
 
 export default function ProductDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [qty, setQty] = useState(1);
-  const [thumb, setThumb] = useState(0);
   const [added, setAdded] = useState(false);
   const { addToCart, cartCount } = useCart();
+  const { customerId } = useAuth();
 
-  // GET /products/:id
-  // 預期回傳形狀（與負責商品 API 的組員確認後可調整 mapping）：
-  // {
-  //   id, name, category, price, original_price, rating, review_count, stock,
-  //   specs: [[key, value], ...],
-  //   seller: { id, initials, name, location, joined, stats: [[val, label], ...] },
-  //   reviews: [{ initials, name, stars, date, text }, ...]
-  // }
+  const [reviewScore, setReviewScore] = useState(5);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewMessage, setReviewMessage] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(null);
+  const [reviewError, setReviewError] = useState(null);
+
   const { data: product, loading, error } = useApi(
     () => getProductById(id),
     [id]
   );
+
+  const handleSubmitReview = async () => {
+    if (!reviewMessage.trim()) {
+      setReviewError("請輸入評論內容");
+      return;
+    }
+    setReviewSubmitting(true);
+    setReviewError(null);
+    setReviewSuccess(null);
+    try {
+      const res = await fetch(
+        `https://database-project-production-aefc.up.railway.app/products/${id}/order`
+      );
+      const json = await res.json();
+      const order_id = json.order_id;
+
+      if (!order_id) {
+        setReviewError("找不到對應訂單，無法送出評論");
+        setReviewSubmitting(false);
+        return;
+      }
+
+      const reviewRes = await fetch(
+        `https://database-project-production-aefc.up.railway.app/reviews`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order_id,
+            review_score: reviewScore,
+            review_comment_title: reviewTitle,
+            review_comment_message: reviewMessage,
+          }),
+        }
+      );
+      const reviewJson = await reviewRes.json();
+      if (reviewJson.success) {
+        setReviewSuccess("評論送出成功！");
+        setReviewTitle("");
+        setReviewMessage("");
+        setReviewScore(5);
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        setReviewError(reviewJson.error ?? "送出失敗");
+      }
+    } catch (err) {
+      setReviewError(err.message);
+    }
+    setReviewSubmitting(false);
+  };
 
   if (loading) {
     return (
@@ -62,25 +113,37 @@ export default function ProductDetailPage() {
   const stock = product.stock ?? 0;
   const breadcrumb = ["Home", product.category ?? "Products", product.name ?? ""];
 
+  const handleAddToCart = () => {
+    if (stock === 0) return;
+    addToCart({
+      id: product.id ?? id,
+      name: product.name,
+      seller_id: seller.id ?? seller.seller_id,
+      seller: seller.name,
+      price,
+      icon: THUMBS[0],
+    }, qty);
+  };
+
   return (
     <div style={{ fontFamily:"'Inter',sans-serif", background:"#fafafa", minHeight:"100vh" }}>
       <Navbar breadcrumb={breadcrumb} cartCount={cartCount} />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 300px" }}>
 
         <div style={{ padding:"2.5rem", display:"flex", flexDirection:"column", gap:"2rem" }}>
+
+          {/* Product image */}
           <div style={{ background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", overflow:"hidden" }}>
-            <div style={{ height:280, background:"#f9f9f9", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <i className={`ti ${THUMBS[thumb]}`} style={{ fontSize:80, color:"#ccc" }} aria-hidden="true" />
-            </div>
-            <div style={{ display:"flex", gap:8, padding:"12px 16px", borderTop:"0.5px solid #f0f0f0" }}>
-              {THUMBS.map((icon,i) => (
-                <div key={i} onClick={() => setThumb(i)} style={{ width:48, height:48, borderRadius:8, background: thumb===i ? "#fff" : "#f5f5f5", border: thumb===i ? "1px solid #111" : "1px solid transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color: thumb===i ? "#555" : "#ccc" }}>
-                  <i className={`ti ${icon}`} style={{ fontSize:18 }} aria-hidden="true" />
-                </div>
-              ))}
+            <div style={{ height:320, background:"#f9f9f9", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <img
+                src={`/images/${id}.jpg`}
+                alt={product.name}
+                style={{ width:"100%", height:"100%", objectFit:"contain" }}
+              />
             </div>
           </div>
 
+          {/* Product info */}
           <div style={card}>
             <div style={label}>{(product.category ?? "").toUpperCase()}</div>
             <div style={{ fontSize:20, fontWeight:400, color:"#111", lineHeight:1.4, marginBottom:12, letterSpacing:"-0.2px" }}>{product.name}</div>
@@ -114,10 +177,11 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
+          {/* Customer Reviews */}
           <div style={card}>
             <div style={{ fontSize:13, fontWeight:500, marginBottom:"1.25rem" }}>Customer reviews</div>
             {reviews.length === 0 && (
-              <div style={{ fontSize:12, color:"#bbb" }}>No reviews yet.</div>
+              <div style={{ fontSize:12, color:"#bbb", marginBottom:"1.25rem" }}>No reviews yet.</div>
             )}
             {reviews.map((r,i) => (
               <div key={i} style={{ padding:"14px 0", borderBottom: i<reviews.length-1 ? "0.5px solid #f5f5f5" : "none" }}>
@@ -132,9 +196,51 @@ export default function ProductDetailPage() {
                 <div style={{ fontSize:12, color:"#888", lineHeight:1.7 }}>{r.text ?? r.body}</div>
               </div>
             ))}
+
+            {/* Write a review form */}
+            <div style={{ marginTop:"1.5rem", paddingTop:"1.5rem", borderTop:"0.5px solid #f0f0f0" }}>
+              <div style={{ fontSize:12, fontWeight:500, marginBottom:12 }}>Write a review</div>
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:6 }}>RATING</div>
+                <div style={{ display:"flex", gap:4 }}>
+                  {[1,2,3,4,5].map(n => (
+                    <span key={n} onClick={() => setReviewScore(n)}
+                      style={{ fontSize:22, cursor:"pointer", color: n <= reviewScore ? "#c8a96e" : "#e0e0e0" }}>★</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:6 }}>TITLE</div>
+                <input
+                  value={reviewTitle}
+                  onChange={e => setReviewTitle(e.target.value)}
+                  placeholder="Summary of your review"
+                  style={{ width:"100%", height:36, padding:"0 12px", border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:13, outline:"none", fontFamily:"'Inter',sans-serif", boxSizing:"border-box", background:"#fafafa" }}
+                />
+              </div>
+              <div style={{ marginBottom:12 }}>
+                <div style={{ fontSize:10, letterSpacing:"1px", color:"#bbb", marginBottom:6 }}>REVIEW</div>
+                <textarea
+                  value={reviewMessage}
+                  onChange={e => setReviewMessage(e.target.value)}
+                  placeholder="Share your experience with this product"
+                  rows={3}
+                  style={{ width:"100%", padding:"10px 12px", border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:13, outline:"none", fontFamily:"'Inter',sans-serif", boxSizing:"border-box", background:"#fafafa", resize:"none" }}
+                />
+              </div>
+              {reviewError && <div style={{ fontSize:12, color:"#e24b4a", marginBottom:8 }}>{reviewError}</div>}
+              {reviewSuccess && <div style={{ fontSize:12, color:"#3b6d11", marginBottom:8 }}>{reviewSuccess}</div>}
+              <button
+                onClick={handleSubmitReview}
+                disabled={reviewSubmitting}
+                style={{ padding:"8px 20px", background: reviewSubmitting ? "#999" : "#111", color:"#fff", border:"none", borderRadius:99, fontSize:12, cursor: reviewSubmitting ? "default" : "pointer", fontFamily:"'Inter',sans-serif" }}>
+                {reviewSubmitting ? "Submitting…" : "Submit review"}
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Right column */}
         <div style={{ padding:"2.5rem", borderLeft:"0.5px solid #e8e8e8", display:"flex", flexDirection:"column", gap:"1.5rem", background:"#fff" }}>
           <div style={{ background:"#fff", borderRadius:16, border:"0.5px solid #e8e8e8", padding:"1.5rem" }}>
             <div style={{ fontSize:28, fontWeight:400, color:"#111", letterSpacing:"-0.5px", marginBottom:4 }}>NT${price.toLocaleString()}</div>
@@ -144,27 +250,30 @@ export default function ProductDetailPage() {
               <div style={{ display:"flex", alignItems:"center", border:"0.5px solid #e0e0e0", borderRadius:99, overflow:"hidden" }}>
                 <button onClick={() => setQty(q => Math.max(1,q-1))} style={{ width:30, height:30, border:"none", background:"#fff", cursor:"pointer", fontSize:16, color:"#555" }}>−</button>
                 <span style={{ width:28, textAlign:"center", fontSize:13, fontWeight:500 }}>{qty}</span>
-                <button onClick={() => setQty(q => Math.min(99,q+1))} style={{ width:30, height:30, border:"none", background:"#fff", cursor:"pointer", fontSize:16, color:"#555" }}>+</button>
+                <button onClick={() => setQty(q => Math.min(stock,q+1))} style={{ width:30, height:30, border:"none", background:"#fff", cursor:"pointer", fontSize:16, color:"#555" }}>+</button>
               </div>
             </div>
             <button
-              style={btnBlack}
+              style={{ ...btnBlack, background: stock === 0 ? "#ccc" : "#111", cursor: stock === 0 ? "default" : "pointer" }}
+              disabled={stock === 0}
               onClick={() => {
-                addToCart({
-                  id: product.id ?? id,
-                  name: product.name,
-                  seller_id: seller.id ?? seller.seller_id,
-                  seller: seller.name,
-                  price,
-                  icon: THUMBS[0],
-                }, qty);
+                handleAddToCart();
                 setAdded(true);
                 setTimeout(() => setAdded(false), 1500);
               }}
             >
-              {added ? "Added ✓" : "Add to bag"}
+              {stock === 0 ? "Out of stock" : added ? "Added ✓" : "Add to bag"}
             </button>
-            <button style={btnOutline}>Buy now</button>
+            <button
+              style={{ ...btnOutline, opacity: stock === 0 ? 0.5 : 1, cursor: stock === 0 ? "default" : "pointer" }}
+              disabled={stock === 0}
+              onClick={() => {
+                handleAddToCart();
+                navigate("/cart");
+              }}
+            >
+              {stock === 0 ? "Out of stock" : "Buy now"}
+            </button>
             <div style={{ marginTop:"1.25rem", paddingTop:"1.25rem", borderTop:"0.5px solid #f0f0f0", display:"flex", flexDirection:"column", gap:8 }}>
               {[["ti-truck","Est. delivery May 30 – Jun 1"],["ti-shield-check","Buyer protection included"],["ti-refresh","7-day returns"]].map(([icon,text]) => (
                 <div key={icon} style={{ display:"flex", alignItems:"center", gap:8, fontSize:11, color:"#999" }}>

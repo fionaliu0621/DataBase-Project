@@ -1,118 +1,279 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
-const inputLight = { width:"100%", height:38, padding:"0 14px", border:"0.5px solid #e8e8e8", borderRadius:8, fontSize:13, color:"#111", background:"#fafafa", outline:"none", fontFamily:"'Inter',sans-serif", boxSizing:"border-box" };
-const fieldLabel = { fontSize:10, letterSpacing:"1px", color:"#555", marginBottom:5 };
+const BASE_URL = "https://database-project-production-aefc.up.railway.app";
+
+const inputLight = {
+  width: "100%", height: 38, padding: "0 14px",
+  border: "0.5px solid #e8e8e8", borderRadius: 8,
+  fontSize: 13, color: "#111", background: "#fafafa",
+  outline: "none", fontFamily: "'Inter',sans-serif", boxSizing: "border-box"
+};
+
+const fieldLabel = { fontSize: 10, letterSpacing: "1px", color: "#555", marginBottom: 5 };
+
+function RoleSwitch({ role, setRole }) {
+  return (
+    <div style={{ display: "flex", gap: 8, marginBottom: "1.5rem" }}>
+      {[["customer", "我是買家"], ["seller", "我是賣家"]].map(([r, label]) => (
+        <button
+          key={r}
+          onClick={() => setRole(r)}
+          style={{
+            flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 12,
+            cursor: "pointer", fontFamily: "'Inter',sans-serif",
+            border: role === r ? "1px solid #111" : "0.5px solid #e8e8e8",
+            background: role === r ? "#111" : "#fff",
+            color: role === r ? "#fff" : "#666",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function RegisterForm({ onSuccess }) {
+  const [customerId, setCustomerId] = useState("");
+  const [password,   setPassword]   = useState("");
+  const [city,       setCity]       = useState("");
+  const [cities,     setCities]     = useState([]);
+  const [error,      setError]      = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [done,       setDone]       = useState(null);
+
+  // 載入城市清單
+  useEffect(() => {
+    fetch(`${BASE_URL}/cities`)
+      .then(r => r.json())
+      .then(data => setCities(Array.isArray(data) ? data : []))
+      .catch(() => setCities([]));
+  }, []);
+
+  const handleSubmit = async () => {
+    setError(null);
+    if (!customerId.trim()) { setError("請輸入 Customer ID"); return; }
+    if (customerId.trim().length < 3) { setError("Customer ID 至少 3 個字元"); return; }
+    if (!city) { setError("請選擇所在城市"); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: customerId.trim(), city })
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "註冊失敗"); return; }
+      setDone(data.customer_id);
+      setTimeout(() => onSuccess(data.customer_id, data.name), 1500);
+    } catch {
+      setError("網路錯誤，請稍後再試");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (done) return (
+    <div style={{ textAlign: "center", padding: "2rem 0" }}>
+      <div style={{ fontSize: 32, marginBottom: 16 }}>✓</div>
+      <div style={{ fontSize: 16, fontWeight: 500, color: "#111", marginBottom: 8 }}>註冊成功!</div>
+      <div style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>你的 Customer ID 是</div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: "#111", background: "#f5f5f5", borderRadius: 8, padding: "10px 20px", display: "inline-block", letterSpacing: 1 }}>{done}</div>
+      <div style={{ fontSize: 11, color: "#bbb", marginTop: 12 }}>請記下此 ID，下次登入時使用</div>
+      <div style={{ fontSize: 11, color: "#bbb", marginTop: 6 }}>正在跳轉...</div>
+    </div>
+  );
+
+  return (
+    <>
+      <div style={{ fontSize: 20, fontWeight: 400, color: "#111", marginBottom: 4, letterSpacing: "-0.3px" }}>Create account</div>
+      <div style={{ fontSize: 12, color: "#bbb", marginBottom: "1.75rem" }}>Join ShopHub for free</div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div style={fieldLabel}>CUSTOMER ID</div>
+        <input
+          value={customerId}
+          onChange={e => setCustomerId(e.target.value)}
+          placeholder="自訂你的 ID，例如 cust_001"
+          style={inputLight}
+        />
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div style={fieldLabel}>PASSWORD</div>
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="••••••••"
+          style={inputLight}
+        />
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <div style={fieldLabel}>CITY</div>
+        <select
+          value={city}
+          onChange={e => setCity(e.target.value)}
+          style={{ ...inputLight, appearance: "none", cursor: "pointer" }}
+        >
+          <option value="">選擇所在城市...</option>
+          {cities.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+
+      {error && <div style={{ fontSize: 11, color: "#e24b4a", marginBottom: "1rem", lineHeight: 1.6 }}>{error}</div>}
+
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        style={{
+          width: "100%", padding: 12,
+          background: loading ? "#888" : "#111",
+          color: "#fff", border: "none", borderRadius: 99,
+          fontSize: 13, fontWeight: 500,
+          cursor: loading ? "default" : "pointer",
+          letterSpacing: "0.3px", marginBottom: "1rem",
+          fontFamily: "'Inter',sans-serif"
+        }}
+      >
+        {loading ? "建立中..." : "Create account"}
+      </button>
+      <div style={{ fontSize: 10, color: "#bbb", textAlign: "center", lineHeight: 1.7, letterSpacing: "0.2px" }}>
+        By registering you agree to our <span style={{ color: "#888", cursor: "pointer" }}>Terms</span> and <span style={{ color: "#888", cursor: "pointer" }}>Privacy Policy</span>.
+      </div>
+    </>
+  );
+}
 
 export default function LoginPage() {
   const [tab, setTab] = useState("login");
-  const [customerId, setCustomerId] = useState("");
-  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("customer");
+  const [userIdInput, setUserIdInput] = useState("");
+  const [password,   setPassword]   = useState("");
   const [signInError, setSignInError] = useState(null);
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
   const { login } = useAuth();
 
-  // ⚠️ 報告中沒有定義登入 API，Customers table 也沒有 email/password 欄位。
-  // 這裡先用「EMAIL 欄位直接當作 customer_id」的方式模擬登入：
-  // 1. 輸入資料庫中真實存在的 customer_id（例如 "C0001"），就能讓 AddOrder 等
-  //    需要 customer_id 的 API 正確運作
-  // 2. password 欄位目前不驗證，純粹保留畫面完整性
-  // 之後若團隊定義了真正的登入 API，把這段換成 API 呼叫即可，
-  // AuthContext 的介面（login/customerId/isAuthenticated）不需要改動
   const handleSignIn = () => {
-    if (!customerId.trim()) {
-      setSignInError("請輸入 Customer ID（對應資料庫 Customers.customer_id）");
+    if (!userIdInput.trim()) {
+      setSignInError(
+        role === "customer"
+          ? "請輸入 Customer ID（例如 cust_000016）"
+          : "請輸入 Seller ID（例如 sell_0090）"
+      );
       return;
     }
     setSignInError(null);
-    login({ customer_id: customerId.trim(), name: customerId.trim(), email: customerId.trim() });
-    const redirectTo = location.state?.from?.pathname || "/";
-    navigate(redirectTo, { replace: true });
+    login({ user_id: userIdInput.trim(), role, name: userIdInput.trim() });
+    if (role === "seller") {
+      navigate("/seller/dashboard", { replace: true });
+    } else {
+      const redirectTo = location.state?.from?.pathname || "/";
+      navigate(redirectTo, { replace: true });
+    }
   };
 
   return (
-    <div style={{ fontFamily:"'Inter',sans-serif", display:"grid", gridTemplateColumns:"420px 1fr", minHeight:"100vh" }}>
-      <div style={{ background:"#111", padding:"3.5rem", display:"flex", flexDirection:"column", justifyContent:"center" }}>
-        <Link to="/" style={{ display:"inline-flex", alignItems:"center", gap:6, fontSize:12, color:"#888", textDecoration:"none", marginBottom:"3rem" }}>
-          <i className="ti ti-arrow-left" style={{ fontSize:14 }} aria-hidden="true" /> Back to shop
+    <div style={{ fontFamily: "'Inter',sans-serif", display: "grid", gridTemplateColumns: "420px 1fr", minHeight: "100vh" }}>
+      {/* 左側黑色區塊 */}
+      <div style={{ background: "#111", padding: "3.5rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", textDecoration: "none", marginBottom: "3rem" }}>
+          <i className="ti ti-arrow-left" style={{ fontSize: 14 }} aria-hidden="true" /> Back to shop
         </Link>
-        <div style={{ fontSize:14, fontWeight:500, letterSpacing:"2px", color:"#fff", marginBottom:"4rem" }}>SHOPHUB</div>
-        <h1 style={{ fontSize:36, fontWeight:300, color:"#fff", lineHeight:1.2, marginBottom:12, letterSpacing:"-1px" }}>Simple.<br />Curated.<br />Yours.</h1>
-        <p style={{ fontSize:13, color:"#555", lineHeight:1.9, marginBottom:"3rem", maxWidth:340 }}>Taiwan's cleanest shopping experience, built for people who appreciate quality.</p>
-        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-          {[["Buyer protection on every order"],["Fast delivery across Taiwan"],["Verified seller ratings and reviews"]].map(([text]) => (
-            <div key={text} style={{ display:"flex", alignItems:"center", gap:12, fontSize:12, color:"#555" }}>
-              <div style={{ width:4, height:4, borderRadius:"50%", background:"#444", flexShrink:0 }} />{text}
+        <div style={{ fontSize: 14, fontWeight: 500, letterSpacing: "2px", color: "#fff", marginBottom: "4rem" }}>SHOPHUB</div>
+        <h1 style={{ fontSize: 36, fontWeight: 300, color: "#fff", lineHeight: 1.2, marginBottom: 12, letterSpacing: "-1px" }}>
+          Simple.<br />Curated.<br />Yours.
+        </h1>
+        <p style={{ fontSize: 13, color: "#555", lineHeight: 1.9, marginBottom: "3rem", maxWidth: 340 }}>
+          Taiwan's cleanest shopping experience, built for people who appreciate quality.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {[
+            "Buyer protection on every order",
+            "Fast delivery across Taiwan",
+            "Verified seller ratings and reviews"
+          ].map(text => (
+            <div key={text} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#555" }}>
+              <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#444", flexShrink: 0 }} />
+              {text}
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ background:"#fff", padding:"3rem 4rem", display:"flex", flexDirection:"column", justifyContent:"center", maxWidth:480, width:"100%", margin:"0 auto" }}>
-        <div style={{ display:"flex", borderBottom:"0.5px solid #e8e8e8", marginBottom:"2rem" }}>
-          {[["login","Sign in"],["register","Register"]].map(([t,l]) => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding:"8px 0", marginRight:"2rem", fontSize:13, cursor:"pointer", border:"none", background:"none", borderBottom: tab===t ? "2px solid #111" : "2px solid transparent", color: tab===t ? "#111" : "#bbb", marginBottom:"-0.5px", fontFamily:"'Inter',sans-serif", fontWeight: tab===t ? 500 : 400 }}>{l}</button>
+      {/* 右側表單區塊 */}
+      <div style={{ background: "#fff", padding: "3rem 4rem", display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 480, width: "100%", margin: "0 auto" }}>
+        <div style={{ display: "flex", borderBottom: "0.5px solid #e8e8e8", marginBottom: "2rem" }}>
+          {[["login", "Sign in"], ["register", "Register"]].map(([t, l]) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                padding: "8px 0", marginRight: "2rem", fontSize: 13,
+                cursor: "pointer", border: "none", background: "none",
+                borderBottom: tab === t ? "2px solid #111" : "2px solid transparent",
+                color: tab === t ? "#111" : "#bbb",
+                marginBottom: "-0.5px", fontFamily: "'Inter',sans-serif",
+                fontWeight: tab === t ? 500 : 400
+              }}
+            >{l}</button>
           ))}
         </div>
 
-        {tab==="login" ? (
+        {tab === "login" ? (
           <>
-            <div style={{ fontSize:20, fontWeight:400, color:"#111", marginBottom:4, letterSpacing:"-0.3px" }}>Welcome back</div>
-            <div style={{ fontSize:12, color:"#bbb", marginBottom:"1.75rem" }}>Sign in to your ShopHub account</div>
-
-            <div style={{ marginBottom:14 }}>
-              <div style={fieldLabel}>CUSTOMER ID</div>
+            <div style={{ fontSize: 20, fontWeight: 400, color: "#111", marginBottom: 4, letterSpacing: "-0.3px" }}>Welcome back</div>
+            <div style={{ fontSize: 12, color: "#bbb", marginBottom: "1.5rem" }}>Sign in to your ShopHub account</div>
+            <RoleSwitch role={role} setRole={r => { setRole(r); setUserIdInput(""); setSignInError(null); }} />
+            <div style={{ marginBottom: 14 }}>
+              <div style={fieldLabel}>{role === "customer" ? "CUSTOMER ID" : "SELLER ID"}</div>
               <input
                 type="text"
-                value={customerId}
-                onChange={e => setCustomerId(e.target.value)}
+                placeholder={role === "customer" ? "e.g. cust_000016" : "e.g. sell_0090"}
+                value={userIdInput}
+                onChange={e => setUserIdInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSignIn()}
                 style={inputLight}
               />
             </div>
-            <div style={{ marginBottom:24 }}>
+            <div style={{ marginBottom: 24 }}>
               <div style={fieldLabel}>PASSWORD</div>
               <input
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSignIn()}
                 style={inputLight}
               />
             </div>
-
             {signInError && (
-              <div style={{ fontSize:11, color:"#e24b4a", marginBottom:"1rem", lineHeight:1.6 }}>{signInError}</div>
+              <div style={{ fontSize: 11, color: "#e24b4a", marginBottom: "1rem", lineHeight: 1.6 }}>{signInError}</div>
             )}
-
             <button
               onClick={handleSignIn}
-              style={{ width:"100%", padding:12, background:"#111", color:"#fff", border:"none", borderRadius:99, fontSize:13, fontWeight:500, cursor:"pointer", letterSpacing:"0.3px", fontFamily:"'Inter',sans-serif" }}
+              style={{ width: "100%", padding: 12, background: "#111", color: "#fff", border: "none", borderRadius: 99, fontSize: 13, fontWeight: 500, cursor: "pointer", letterSpacing: "0.3px", fontFamily: "'Inter',sans-serif" }}
             >
               Sign in
             </button>
+            {role === "customer" && (
+              <div style={{ fontSize: 11, color: "#bbb", marginTop: 16, textAlign: "center" }}>
+                還沒有帳號？
+                <span onClick={() => setTab("register")} style={{ color: "#111", cursor: "pointer", marginLeft: 4 }}>立即註冊</span>
+              </div>
+            )}
           </>
         ) : (
-          <>
-            <div style={{ fontSize:20, fontWeight:400, color:"#111", marginBottom:4, letterSpacing:"-0.3px" }}>Create account</div>
-            <div style={{ fontSize:12, color:"#bbb", marginBottom:"1.75rem" }}>Join ShopHub for free</div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
-              {[["FIRST NAME","Wei"],["LAST NAME","Chen"]].map(([l,p]) => (
-                <div key={l}><div style={fieldLabel}>{l}</div><input placeholder={p} style={inputLight} /></div>
-              ))}
-            </div>
-            {[["EMAIL","email","your@email.com"],["PASSWORD","password","At least 8 characters"]].map(([l,t,p]) => (
-              <div key={l} style={{ marginBottom:14 }}>
-                <div style={fieldLabel}>{l}</div>
-                <input type={t} placeholder={p} style={inputLight} />
-              </div>
-            ))}
-            <button style={{ width:"100%", padding:12, background:"#111", color:"#fff", border:"none", borderRadius:99, fontSize:13, fontWeight:500, cursor:"pointer", letterSpacing:"0.3px", marginBottom:"1rem", fontFamily:"'Inter',sans-serif" }}>Create account</button>
-            <div style={{ fontSize:10, color:"#bbb", textAlign:"center", lineHeight:1.7, letterSpacing:"0.2px" }}>
-              By registering you agree to our <a style={{ color:"#888", cursor:"pointer" }}>Terms</a> and <a style={{ color:"#888", cursor:"pointer" }}>Privacy Policy</a>.
-            </div>
-          </>
+          <RegisterForm onSuccess={(customer_id, name) => {
+            login({ user_id: customer_id, role: "customer", name });
+            navigate(location.state?.from?.pathname || "/", { replace: true });
+          }} />
         )}
       </div>
     </div>

@@ -18,7 +18,12 @@ export default function ReviewPage() {
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(() => {
+    try {
+      const reviewed = JSON.parse(sessionStorage.getItem("reviewed_orders") || "[]");
+      return reviewed.includes(order_id);
+    } catch { return false; }
+  });
   const { customerId } = useAuth();
   const displayed = hovered || rating;
 
@@ -66,6 +71,12 @@ export default function ReviewPage() {
         body,
       });
       setSubmitted(true);
+      // 記錄這筆訂單已評論
+      try {
+        const reviewed = JSON.parse(sessionStorage.getItem("reviewed_orders") || "[]");
+        reviewed.push(order_id);
+        sessionStorage.setItem("reviewed_orders", JSON.stringify(reviewed));
+      } catch {}
       setTitle("");
       setBody("");
       refetch(); // 重新載入評論列表
@@ -128,13 +139,13 @@ export default function ReviewPage() {
             )}
             {submitted && (
               <div style={{ fontSize:12, color:"#3b6d11", marginBottom:10, lineHeight:1.6 }}>
-                評論已送出，感謝你的回饋！
+                此訂單已評論過，感謝你的回饋！
               </div>
             )}
 
             <button
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || submitted}
               style={{ width:"100%", padding:12, background: submitting ? "#999" : "#111", color:"#fff", border:"none", borderRadius:99, fontSize:13, fontWeight:500, cursor: submitting ? "default" : "pointer", letterSpacing:"0.3px", fontFamily:"'Inter',sans-serif", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
               <i className="ti ti-send" aria-hidden="true" /> {submitting ? "Submitting…" : "Submit review"}
             </button>

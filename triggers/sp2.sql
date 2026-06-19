@@ -1,8 +1,4 @@
-USE railway;
-
-DELIMITER $$
-
-CREATE PROCEDURE GetSellerRevenue(
+CREATE DEFINER=`root`@`%` PROCEDURE `GetSellerRevenue`(
     IN p_seller_id VARCHAR(50)
 )
 BEGIN
@@ -19,6 +15,4 @@ BEGIN
     WHERE s.seller_id COLLATE utf8mb4_unicode_ci = p_seller_id COLLATE utf8mb4_unicode_ci
     AND o.order_status = 'delivered'
     GROUP BY s.seller_id, s.seller_city;
-END$$
-
-DELIMITER ;
+END

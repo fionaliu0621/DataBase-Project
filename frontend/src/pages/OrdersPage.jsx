@@ -55,18 +55,29 @@ export default function OrdersPage() {
   const handleCancel = async (id) => {
     if (!window.confirm('確定要取消這筆訂單嗎？')) return;
     try {
+      // 💡 修正 1：把網址中間錯誤的 /api/ 拿掉，對齊你後端的路由
       const res = await fetch(
-        `https://delightful-fascination-production-82e0.up.railway.app/api/orders/${id}/status`,
+        `https://database-project-production-aefc.up.railway.app/orders/${id}/status`,
         {
-          method: 'PATCH',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ new_status: 'canceled' })
         }
       );
+
+      // 💡 修正 2：加強防禦防炸，如果不是 200 狀態碼，先抓出文字報錯，不盲目轉 JSON
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`伺服器回應錯誤 (${res.status}): ${errText}`);
+      }
+
       const data = await res.json();
-      alert(data.result ?? '取消成功');
+      
+      // 💡 修正 3：對應後端傳回來的結構
+      alert(data.message || data.result || '取消成功');
       window.location.reload();
     } catch (err) {
+      // 這樣寫如果再失敗，你就能看到具體的 404 或 500 錯誤，而不是沒用的 Unexpected end...
       alert('取消失敗：' + err.message);
     }
   };

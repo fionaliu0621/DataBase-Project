@@ -14,15 +14,26 @@ const S = {
   sep: { width:32, height:"0.5px", background:"#e0e0e0", margin:"0 10px" },
 };
 
-const NAV_LINKS = [
+// 買家看到的選單
+const CUSTOMER_LINKS = [
   { label:"Products",    to:"/"            },
   { label:"Sellers",     to:"/sellers"     },
+  { label:"Orders",      to:"/orders"      },
   { label:"About",       to:"/about"       },
+];
+
+// 賣家看到的選單：三個分頁，分別對應不同網址路由
+const SELLER_LINKS = [
+  { label:"Overview",   to:"/seller/dashboard" },
+  { label:"My Products", to:"/seller/products"  },
+  { label:"Orders",      to:"/seller/orders"    },
 ];
 
 export default function Navbar({ cartCount=0, breadcrumb=null, steps=null, activeStep=null }) {
   const location = useLocation();
-  const { isAuthenticated, customer, logout } = useAuth();
+  const { isAuthenticated, customer, role, logout } = useAuth();
+
+  const navLinks = role === "seller" ? SELLER_LINKS : CUSTOMER_LINKS;
 
   return (
     <nav style={S.nav}>
@@ -53,7 +64,7 @@ export default function Navbar({ cartCount=0, breadcrumb=null, steps=null, activ
         </div>
       ) : (
         <div style={S.links}>
-          {NAV_LINKS.map(link => (
+          {navLinks.map(link => (
             <Link key={link.to} to={link.to} style={{
               fontSize:13,
               color: location.pathname === link.to ? "#111" : "#666",
@@ -73,10 +84,10 @@ export default function Navbar({ cartCount=0, breadcrumb=null, steps=null, activ
           <button
             onClick={logout}
             style={{ ...S.iconBtn, flexDirection:"column", gap:2 }}
-            title={`Customer ID: ${customer?.customer_id ?? ""}（點擊登出）`}
+            title={`${role === "seller" ? "Seller" : "Customer"} ID: ${customer?.user_id ?? ""}（點擊登出）`}
           >
             <i className="ti ti-user-check" aria-hidden="true" />
-            <span style={S.iconLabel}>{customer?.customer_id ?? "Account"}</span>
+            <span style={S.iconLabel}>{customer?.user_id ?? "Account"}</span>
           </button>
         ) : (
           <Link to="/login" style={{ ...S.iconBtn, textDecoration:"none", flexDirection:"column", gap:2 }}>
@@ -84,14 +95,18 @@ export default function Navbar({ cartCount=0, breadcrumb=null, steps=null, activ
             <span style={S.iconLabel}>Login</span>
           </Link>
         )}
-        <Link
-          to={isAuthenticated ? "/cart" : "/login"}
-          style={{ ...S.iconBtn, textDecoration:"none", flexDirection:"column", gap:2, position:"relative" }}
-        >
-          <i className="ti ti-shopping-bag" aria-hidden="true" />
-          {cartCount > 0 && <span style={S.badge}>{cartCount}</span>}
-          <span style={S.iconLabel}>Cart</span>
-        </Link>
+
+        {/* 賣家不顯示 Cart 圖示，買家（或未登入）顯示 */}
+        {role !== "seller" && (
+          <Link
+            to={isAuthenticated ? "/cart" : "/login"}
+            style={{ ...S.iconBtn, textDecoration:"none", flexDirection:"column", gap:2, position:"relative" }}
+          >
+            <i className="ti ti-shopping-bag" aria-hidden="true" />
+            {cartCount > 0 && <span style={S.badge}>{cartCount}</span>}
+            <span style={S.iconLabel}>Cart</span>
+          </Link>
+        )}
       </div>
     </nav>
   );

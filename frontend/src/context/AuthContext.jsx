@@ -1,27 +1,45 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState } from "react";
 
-// ⚠️ 暫時方案
-// 因為登入 API 尚未完成，目前預設為「未登入」狀態（customer = null）。
-// 使用者需在 LoginPage 輸入 customer_id 才會切換為登入狀態，
-// 這樣才能實際測試 RequireAuth（/cart, /orders, /reviews/:order_id）的保護機制。
-//
-// 之後 LoginPage 串接真實登入 API 後，
-// 只需要在登入成功時呼叫 login(customer) 即可，
-// 其他頁面透過 useAuth() 取得的 customerId 會自動更新，不需要逐頁修改。
+// 登入時除了 customer_id（或 seller_id）以外，現在多存一個 role：
+// role === "customer" -> 買家
+// role === "seller"   -> 賣家
+// 兩種角色共用同一個 sessionStorage key，欄位用 user_id 統一表示。
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [customer, setCustomer] = useState(null);
 
-  const login = (customerData) => setCustomer(customerData);
-  const logout = () => setCustomer(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("auth_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // userData 預期格式：{ user_id: "cust_000016" | "sell_0090", role: "customer" | "seller", name }
+  const login = (userData) => {
+    sessionStorage.setItem("auth_user", JSON.stringify(userData));
+    setUser(userData);
+  };
+  const logout = () => {
+    sessionStorage.removeItem("auth_user");
+    setUser(null);
+  };
+
+  const role = user?.role ?? null;
 
   const value = {
-    customer,
-    customerId: customer?.customer_id ?? null,
-    isAuthenticated: !!customer,
+    customer: user,                 // 保留舊名稱，避免其他頁面（Navbar 等）一次性全部要改
+    customerId: role === "customer" ? user?.user_id ?? null : null,
+    sellerId:   role === "seller"   ? user?.user_id ?? null : null,
+    userId: user?.user_id ?? null,  // 不分角色都能拿到目前登入的 id
+    role,
+    isAuthenticated: !!user,
+    isSeller: role === "seller",
+    isCustomer: role === "customer",
     login,
     logout,
   };

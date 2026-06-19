@@ -49,9 +49,6 @@ const CATS = [
   "Toys",
 ];
 
-// ⚠️ 開發測試用：當 GET /products 失敗（後端尚未啟動）時，
-// 顯示這些 mock 商品，讓「加入購物車 → 結帳」流程在前端可以被完整測試。
-// 後端 ready 後，這份資料會被真實的 API 回應取代，不需要額外處理。
 const MOCK_PRODUCTS = [
   {
     id: "p001",
@@ -127,7 +124,6 @@ const MOCK_PRODUCTS = [
   },
 ];
 
-// 後端商品圖示是依分類而定，這裡用一個簡單對照表
 const CATEGORY_ICON = {
   Electronics: "ti-volume",
   Sports: "ti-activity",
@@ -186,16 +182,6 @@ const s = {
     cursor: "pointer",
     letterSpacing: "0.2px",
   },
-  btnGhost: {
-    background: "none",
-    border: "none",
-    fontSize: 13,
-    color: "#111",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-  },
   heroStats: {
     display: "flex",
     gap: "3rem",
@@ -219,6 +205,44 @@ const s = {
     gap: 4,
     borderBottom: "0.5px solid #e8e8e8",
     overflowX: "auto",
+  },
+  searchBar: {
+    background: "#fff",
+    padding: "0.75rem 2.5rem",
+    borderBottom: "0.5px solid #e8e8e8",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    maxWidth: 400,
+    padding: "8px 14px",
+    fontSize: 13,
+    border: "0.5px solid #e0e0e0",
+    borderRadius: 99,
+    outline: "none",
+    background: "#fafafa",
+    color: "#111",
+  },
+  searchBtn: {
+    padding: "8px 18px",
+    fontSize: 13,
+    background: "#111",
+    color: "#fff",
+    border: "none",
+    borderRadius: 99,
+    cursor: "pointer",
+    fontWeight: 500,
+  },
+  clearBtn: {
+    padding: "8px 14px",
+    fontSize: 12,
+    background: "none",
+    color: "#bbb",
+    border: "0.5px solid #e0e0e0",
+    borderRadius: 99,
+    cursor: "pointer",
   },
   section: { padding: "3rem 2.5rem", background: "#fafafa" },
   secHead: {
@@ -327,25 +351,55 @@ const s = {
 
 export default function HomePage() {
   const [activeCat, setActiveCat] = useState("All");
+  const [searchInput, setSearchInput] = useState("");   // 輸入框即時值
+  const [searchQuery, setSearchQuery] = useState("");   // 實際送出的搜尋關鍵字
   const { cartCount, addToCart } = useCart();
 
-  // GET /products，依分類篩選交給後端（category=All 時不帶參數）
+  // 送出搜尋
+  const handleSearch = () => {
+    setSearchQuery(searchInput.trim());
+  };
+
+  // 清除搜尋
+  const handleClear = () => {
+    setSearchInput("");
+    setSearchQuery("");
+  };
+
+  // Enter 鍵送出
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleSearch();
+  };
+
+  // GET /products，依分類 + 搜尋關鍵字篩選
   const { data, loading, error } = useApi(
-    () =>
-      getProducts(activeCat === "All" ? undefined : { category: activeCat }),
-    [activeCat],
+    () => {
+      const params = {};
+      if (activeCat !== "All") params.category = activeCat;
+      if (searchQuery) params.search = searchQuery;
+      return getProducts(Object.keys(params).length > 0 ? params : undefined);
+    },
+    [activeCat, searchQuery],
   );
 
-  // 後端回傳格式預期為陣列；若是 { products: [...] } 也相容處理
   const products = Array.isArray(data) ? data : (data?.products ?? []);
 
-  // 後端尚未啟動 / API 失敗時，改用 mock 資料，讓加入購物車與結帳流程可被測試
   const usingMockData = !!error;
   const displayProducts = usingMockData
     ? activeCat === "All"
       ? MOCK_PRODUCTS
       : MOCK_PRODUCTS.filter((p) => p.category === activeCat)
     : products;
+
+  // 標題文字
+  const sectionTitle = () => {
+    const parts = [];
+    if (activeCat !== "All") parts.push(activeCat);
+    if (searchQuery) parts.push(`"${searchQuery}"`);
+    return parts.length > 0
+      ? `Results for ${parts.join(" · ")}`
+      : "Featured products";
+  };
 
   return (
     <div style={s.page}>
@@ -374,7 +428,6 @@ export default function HomePage() {
             >
               Shop now
             </button>
-            {/* View collections 連結已從此處移除 */}
           </div>
           <div style={s.heroStats}>
             {[
@@ -406,15 +459,17 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-        <div style={s.heroVisual}>
-          <i
-            className="ti ti-photo"
-            style={{ fontSize: 40 }}
-            aria-hidden="true"
+        <div style={{ ...s.heroVisual, overflow: "hidden", padding: 0 }}>
+          <img
+            src="/images/banner.jpg"
+            alt="hero"
+            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 16 }}
+            onError={e => { e.target.style.display = "none"; }}
           />
         </div>
       </div>
 
+      {/* 分類列 */}
       <div style={s.cats}>
         {CATS.map((cat) => (
           <span
@@ -437,11 +492,30 @@ export default function HomePage() {
         ))}
       </div>
 
+      {/* 搜尋列 */}
+      <div style={s.searchBar}>
+        <input
+          style={s.searchInput}
+          type="text"
+          placeholder="Search products…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <button style={s.searchBtn} onClick={handleSearch}>
+          <i className="ti ti-search" style={{ marginRight: 4 }} />
+          Search
+        </button>
+        {searchQuery && (
+          <button style={s.clearBtn} onClick={handleClear}>
+            ✕ Clear
+          </button>
+        )}
+      </div>
+
       <div id="featured-products" style={s.section}>
         <div style={s.secHead}>
-          <div style={s.secTitle}>
-            Featured products{activeCat !== "All" ? ` — ${activeCat}` : ""}
-          </div>
+          <div style={s.secTitle}>{sectionTitle()}</div>
         </div>
 
         {error && (
@@ -457,11 +531,9 @@ export default function HomePage() {
               lineHeight: 1.6,
             }}
           >
-            ⚠️ 無法連線到後端
-            {activeCat !== "All" ? `(category: ${activeCat})` : ""}:{" "}
-            {error.message}
+            ⚠️ 無法連線到後端: {error.message}
             <br />
-            目前顯示開發測試用的範例商品，加入購物車與結帳流程仍可正常測試。
+            目前顯示開發測試用的範例商品。
           </div>
         )}
 
@@ -469,29 +541,21 @@ export default function HomePage() {
           {loading && <div style={s.emptyState}>Loading products…</div>}
 
           {!loading && displayProducts.length === 0 && (
-            <div style={s.emptyState}>No products found.</div>
+            <div style={s.emptyState}>
+              {searchQuery ? `No results for "${searchQuery}".` : "No products found."}
+            </div>
           )}
-
-          {/* 加入了 .slice(0, 48) 限制只顯示前 48 筆 */}
 
           {!loading &&
             displayProducts
-              // 1. 先用 filter 嚴格把關 ID
-              .filter((p) => {
-                const pid = p.id ?? p.product_id;
-                
-                // 確認 ID 存在，且是 prod_ 開頭
-                if (pid && String(pid).startsWith("prod_")) {
-                  // 把 'prod_' 去掉，轉成數字來判斷
-                  const num = parseInt(String(pid).replace("prod_", ""), 10);
-                  // 只有數字在 1 到 48 之間的商品才能過關
-                  return num >= 1 && num <= 48;
-                }
-                
-                // 如果是開發測試用的 p001 資料，預設放行
-                return true; 
-              })
-              // 2. 再進行畫面渲染
+              // .filter((p) => {
+              //   const pid = p.id ?? p.product_id;
+              //   if (pid && String(pid).startsWith("prod_")) {
+              //     const num = parseInt(String(pid).replace("prod_", ""), 10);
+              //     return num >= 1 && num <= 48;
+              //   }
+              //   return true;
+              // })
               .map((p) => {
                 const pid = p.id ?? p.product_id;
                 return (
@@ -504,89 +568,87 @@ export default function HomePage() {
                       color: "inherit",
                     }}
                   >
-                  {/* ... 下面的卡片內容維持原樣，不需要動 ... */}
-                  <div style={s.pimg}>
-                    {p.image ? (
-                      <img
-                        src={p.image}
-                        alt={p.product_name}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          borderRadius: 8,
-                        }}
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <i
-                        className={`ti ${CATEGORY_ICON[p.product_category_name ?? p.category] || "ti-package"}`}
-                        style={{ fontSize: 40, color: "#ccc" }}
-                        aria-hidden="true"
-                      />
-                    )}
-                  </div>
-                  <div style={s.pname}>
-                    {p.product_name ?? p.name ?? p.product_id}
-                  </div>
-                  <div style={s.pcat}>{(p.category ?? "").toUpperCase()}</div>
-                  <div style={s.pfoot}>
-                    <div style={s.pprice}>
-                      NT${Number(p.product_price).toLocaleString()}
+                    <div style={s.pimg}>
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.product_name}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            borderRadius: 8,
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <i
+                          className={`ti ${CATEGORY_ICON[p.product_category_name ?? p.category] || "ti-package"}`}
+                          style={{ fontSize: 40, color: "#ccc" }}
+                          aria-hidden="true"
+                        />
+                      )}
                     </div>
-                    <div style={s.prating}>
-                      <span style={{ color: "#c8a96e" }}>★</span>
-                      {p.rating ?? "—"}
+                    <div style={s.pname}>
+                      {p.product_name ?? p.name ?? p.product_id}
                     </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      addToCart(
-                        {
-                          id: pid,
-                          name: p.product_name ?? p.name,
-                          seller_id: p.seller_id,
-                          seller: p.seller_name ?? p.seller,
-                          price: Number(p.product_price ?? p.price),
-                          icon:
-                            CATEGORY_ICON[
-                              p.product_category_name ?? p.category
-                            ] || "ti-package",
-                        },
-                        1,
-                      );
-                    }}
-                    style={{
-                      position: "absolute",
-                      top: 10,
-                      right: 10,
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      border: "0.5px solid #e8e8e8",
-                      background: "#fff",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#666",
-                      fontSize: 13,
-                    }}
-                    aria-label="Add to cart"
-                  >
-                    <i className="ti ti-plus" aria-hidden="true" />
-                  </button>
-                </Link>
-              );
-            })}
+                    <div style={s.pcat}>{(p.product_category_name ?? p.category ?? "").toUpperCase()}</div>
+                    <div style={s.pfoot}>
+                      <div style={s.pprice}>
+                        NT${Number(p.product_price).toLocaleString()}
+                      </div>
+                      <div style={s.prating}>
+                        <span style={{ color: "#c8a96e" }}>★</span>
+                        {p.rating ?? "—"}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        addToCart(
+                          {
+                            id: pid,
+                            name: p.product_name ?? p.name,
+                            seller_id: p.seller_id,
+                            seller: p.seller_name ?? p.seller,
+                            price: Number(p.product_price ?? p.price),
+                            icon:
+                              CATEGORY_ICON[
+                                p.product_category_name ?? p.category
+                              ] || "ti-package",
+                          },
+                          1,
+                        );
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        right: 10,
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        border: "0.5px solid #e8e8e8",
+                        background: "#fff",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#666",
+                        fontSize: 13,
+                      }}
+                      aria-label="Add to cart"
+                    >
+                      <i className="ti ti-plus" aria-hidden="true" />
+                    </button>
+                  </Link>
+                );
+              })}
         </div>
       </div>
 
-      {/* 訂單區塊：待 OrdersPage / GET /customers/:id/orders 整合後可改用同一份資料 */}
       <div style={s.orderSection}>
         <div style={s.secHead}>
           <div style={s.secTitle}>Recent orders</div>
